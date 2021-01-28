@@ -101,15 +101,6 @@ class SampleHandler(QWidget):
             #     child2.setText(0, "Child {}".format(x))
             #     child2.setCheckState(0, Qt.Unchecked)
 
-#         for i in range(3):
-#             parent = QTreeWidgetItem(self.tree)
-#             parent.setText(0, "Parent {}".format(i))
-#             parent.setFlags(parent.flags() | Qt.ItemIsTristate | Qt.ItemIsUserCheckable)
-#             for x in range(5):
-#                 child = QTreeWidgetItem(parent)
-#                 child.setFlags(child.flags() | Qt.ItemIsUserCheckable)
-#                 child.setText(0, "Child {}".format(x))
-#                 child.setCheckState(0, Qt.Unchecked)
 
         self.iter +=1
 
@@ -124,8 +115,6 @@ class SampleHandler(QWidget):
         self.updatelist =  iterlist
         # print(self.updatelist)
 
-
-
     def handleButton(self):
          iterator = QTreeWidgetItemIterator(self.tree)
          while iterator.value():
@@ -139,9 +128,7 @@ class SampleHandler(QWidget):
         self.SpectraWindows = {}
         self.SpectraWindows[self.updatelist[0]] = FitViewWindow(spectra_obj = self.sample_obj.__dict__[self.updatelist[0]])
         self.SpectraWindows[self.updatelist[0]].show()
-    # def cleartreechild(self):
-    #     self.vrfs_selected()
-    #     tree.takeTopLevelItem(tree.indexOfTopLevelItem(i))
+
 
     def cleartree(self):
         self.tree.clear()
@@ -159,20 +146,6 @@ class FitViewWindow(QMainWindow):
         # self.mod = None
         self.spectra_obj = spectra_obj
         print(self.spectra_obj.mod)
-        # self.loaded_samples = {}
-        # self.ddict, self.xpssamp = load_sample()
-        # self.loaded_samples[self.xpssamp.sample_name] = self.xpssamp
-        # print('loaded smple')
-        # print(self.loaded_samples.keys())
-
-        # self.params = self.xpssamp.Nb3d.params
-        # self.mod = self.xpssamp.Nb3d.mod
-        # self.pairlist = self.xpssamp.Nb3d.pairlist
-        # self.element_ctrl = self.xpssamp.Nb3d.element_ctrl
-        # self.E = self.xpssamp.Nb3d.E
-
-        # self.show_sampletree_window(treeparent = self.ddict['sample_name'], \
-        #     treechildren = self.ddict['element_scans'])
 
         self.create_menu()
         self.create_main_frame()
@@ -228,7 +201,6 @@ class FitViewWindow(QMainWindow):
     def update_plot(self):
         """ Redraws the figure
         """
-        # str = self.textbox.text().encode('utf-8')
 
         # clear the axes and redraw the plot anew
         #
@@ -269,7 +241,6 @@ class FitViewWindow(QMainWindow):
             self.sampletreeWindow = data_tree.DataTreeHandler(treeparent = treeparent,treechildren=treechildren)
             self.sampletreeWindow.show()
             self.connect_sampletree()
-            # shell()
 
         else:
             self.sampletreeWindow.close()
@@ -280,71 +251,10 @@ class FitViewWindow(QMainWindow):
         # self.sampletreeWindow.button.clicked.connect(self.plot_tree_choices)  # Not sure why this is here, clicking on window initiates self.plot_tree_choices
         self.sampletreeWindow.tree.itemChanged[QTreeWidgetItem, int].connect(self.plot_tree_choices)
         
-        # self.sampletreeWindow.tree.itemClicked[QTreeWidgetItem, int].connect(self.plot_tree_choices)
-
-    # def plot_tree_choices(self, item, column):
-    #     print(item.text(0))
-    #     if item.checkState(column) == Qt.Checked:
-    #         print(item.text(0),'Item Checked')
-    #         self.update_plot(sample = self.xpssamp,data = item.text(0))
-
-    #     elif item.checkState(column) == Qt.Unchecked:
-    #         print('yay')
-            # shell()
-            # print(item.text(0),'Item Unchecked')
-            # print(dir(item.parent))
-            # print(item.parent())
-            # print(item.parent().text(0))
-            # self.canvas.axes.cla()
-
-    def plot_tree_choices(self,val, column):
-    #     sender = self.sender()
-    #     print('itemclicked')
-    #     # print(self.sampletreeWindow.updatelist)
-    #     # print(dir(sender))
-    #     # print(dir(sender.itemWidget))
-    #     # print(sender.itemWidget)
-    #     # print(sender.text)
-    #     # for spec in self.sampletreeWindow.updatelist:
-    #     #     self.update_plot(sample = self.xpssamp,data = spec)
-    #     # self.create_main_frame()
-    #     # print(self.sampletreeWindow.tree.selectedItems())
-    #     self.axes.cla()  
-        iterator = QTreeWidgetItemIterator(self.sampletreeWindow.tree, QTreeWidgetItemIterator.Checked)
-        while iterator.value():
-            item = iterator.value()
-            if item.text(0) not in self.sampletreeWindow.treeparent:
-                # print(item.text(0),item.parent().text(0))
-                sample = item.parent().text(0)
-                spectra = item.text(0)
-                self.mod = self.loaded_samples[sample].__dict__[spectra].mod
-                self.pairlist = self.loaded_samples[sample].__dict__[spectra].pairlist
-                self.element_ctrl = self.loaded_samples[sample].__dict__[spectra].element_ctrl
-                self.params = self.loaded_samples[sample].__dict__[spectra].params
-                self.E = self.loaded_samples[sample].__dict__[spectra].E
-                self.I = self.loaded_samples[sample].__dict__[spectra].I
-                print('wehere')
-                self.update_plot(sample = self.loaded_samples[sample],data = item.text(0))
-            # print(item.text(0),item.isSelected())
-            # print(item.text(0),item.checkState(column))
-            iterator += 1
-            # if item.text(0) not in self.parent:
-            # #     print(item.text(0))
-            #     iterlist.append(item.text(0))  
-
 
     """Here we build the window to interactively change the parameters"""
     def show_params_window(self):
         if self.paramsWindow is None:
-        #     iterator = QTreeWidgetItemIterator(self.sampletreeWindow.tree, QTreeWidgetItemIterator.Checked)
-        #     while iterator.value():
-        #         item = iterator.value()
-        #         if item.text(0) not in self.sampletreeWindow.treeparent:
-        #             sample = item.parent().text(0)
-        #             spectra = item.text(0)
-        #             # print(item.text(0),item.parent().text(0))
-        #         iterator += 1
-
 
             self.paramsWindow = ParameterWindow(model = self.spectra_obj.mod, pairlist = self.spectra_obj.pairlist, \
                 element_ctrl = self.spectra_obj.element_ctrl, params = self.spectra_obj.params, E = self.spectra_obj.E)
@@ -420,17 +330,7 @@ class FitViewWindow(QMainWindow):
         self.spectra_obj.fit(specific_points = fitlist,plotflag = False, track = False)
         self.update_plot()
 
-    def plot_fit_result(self):
-        # print(self.fit_result_box.value(), type(self.fit_result_box.value()))
-        self.update_plot(fit_result_idx = self.fit_result_box.value())
-
     """Build the Main window"""
-# class MainWin(QMainWindow):
-#     def __init__(self, parent=None):
-#         QMainWindow.__init__(self, parent)
-
-#         self.create_main_frame()
-
     def create_main_frame(self):
         self.main_frame = QWidget()
         
@@ -478,9 +378,6 @@ class FitViewWindow(QMainWindow):
         self.fit_result_cb = QCheckBox("Fit Results")
         self.fit_result_cb.setChecked(False)
         self.fit_result_cb.stateChanged.connect(self.update_plot)
-
-        # self.fit_result_box.setMaximum(np.max(self.limits[par.name]))
-        # self.fit_result_box.setMinimum(np.min(self.limits[par.name]))
 
         # slider_label = QLabel('Set xlims:')
         # self.slider = QSlider(Qt.Horizontal)
