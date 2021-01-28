@@ -225,47 +225,42 @@ class FitViewWindow(QMainWindow):
         
         QMessageBox.information(self, "Click!", msg)
     
-    def update_plot(self,sample = None,data = None):
+    def update_plot(self):
         """ Redraws the figure
         """
-        str = self.textbox.text().encode('utf-8')
-        # self.data = [int(s) for s in str.split()]
-        
-        # x = range(len(self.data))
+        # str = self.textbox.text().encode('utf-8')
 
         # clear the axes and redraw the plot anew
         #
-        print('inplot')
-        # self.axes.clear()
+        print(self.spectra_plot_box.value())
+        # print(self.fit_result_cb.value())
+        print(self.fit_result_cb.isChecked())
         self.axes.cla()        
 
         self.axes.grid(self.grid_cb.isChecked())
         
 
-        if self.spectra_obj.mod is not None:
-            self.axes.plot(self.spectra_obj.E, self.spectra_obj.I[0],'o')
-            self.axes.plot(self.spectra_obj.E, self.spectra_obj.mod.eval(self.spectra_obj.params, x = self.spectra_obj.E))
+        if not self.fit_result_cb.isChecked():
+            self.axes.plot(self.spectra_obj.esub, self.spectra_obj.isub[self.spectra_plot_box.value()],'o')
+            self.axes.plot(self.spectra_obj.esub, self.spectra_obj.mod.eval(self.spectra_obj.params, x = self.spectra_obj.esub))
             for pairs in enumerate(self.spectra_obj.pairlist):
-                self.axes.fill_between(self.spectra_obj.E,\
-                    sum([self.spectra_obj.mod.eval_components(params = self.spectra_obj.params,x = self.spectra_obj.E)[comp] for comp in pairs[1]]), alpha=0.3)
-        
-        # if sample is not None:
-        #     plotsamp = sample.__dict__[data]
-        #     self.axes.plot(plotsamp.E, plotsamp.data['isub'][0],'o')
-        #     self.axes.plot(plotsamp.E, plotsamp.mod.eval(plotsamp.params, x = plotsamp.E))
-        #     for pairs in enumerate(plotsamp.pairlist):
-        #         self.axes.fill_between(plotsamp.E,\
-        #             sum([plotsamp.mod.eval_components(params = plotsamp.params,x = plotsamp.E)[comp] for comp in pairs[1]]), alpha=0.3)
-                    
-                                                            # color = element_color[pairs[1][0]], alpha=0.3)
+                self.axes.fill_between(self.spectra_obj.esub,\
+                    sum([self.spectra_obj.mod.eval_components(params = self.spectra_obj.params,x = self.spectra_obj.esub)[comp] for comp in pairs[1]]), alpha=0.3)
 
-        # p2 = plt.plot(self.E,self.mod.eval(self.params,x=self.E) , color = 'black')
-        if self.spectra_obj.mod is not None:
-            self.axes.set_xlabel('Binding Energy (eV)',fontsize=30)
-            self.axes.set_ylabel('Counts/sec',fontsize=30)
-            self.axes.set_xlim(np.max(self.spectra_obj.E),np.min(self.spectra_obj.E))
-            self.axes.tick_params(labelsize=20)
-            self.fig.tight_layout()
+        elif self.fit_result_cb.isChecked():
+            self.axes.plot(self.spectra_obj.esub, self.spectra_obj.isub[self.spectra_plot_box.value()],'o')
+            self.axes.plot(self.spectra_obj.esub, self.spectra_obj.mod.eval(self.spectra_obj.fit_results[self.spectra_plot_box.value()].params, x = self.spectra_obj.esub))
+            for pairs in enumerate(self.spectra_obj.pairlist):
+                self.axes.fill_between(self.spectra_obj.esub,\
+                    sum([self.spectra_obj.mod.eval_components(params = self.spectra_obj.fit_results[self.spectra_plot_box.value()].params,x = self.spectra_obj.esub)[comp] for comp in pairs[1]]), alpha=0.3)
+        
+
+
+        self.axes.set_xlabel('Binding Energy (eV)',fontsize=30)
+        self.axes.set_ylabel('Counts/sec',fontsize=30)
+        self.axes.set_xlim(np.max(self.spectra_obj.esub),np.min(self.spectra_obj.esub))
+        self.axes.tick_params(labelsize=20)
+        self.fig.tight_layout()
         self.canvas.draw()
 
     """A QTree Widget Window for controlling which samples are plotted and fit"""
@@ -409,6 +404,26 @@ class FitViewWindow(QMainWindow):
         # print(vary)
 
 
+    """Here we build the window to fit the spectra"""
+    def fit_spectra(self):
+
+        fitlist = []
+        iterator = QTreeWidgetItemIterator(self.spectra_tree, QTreeWidgetItemIterator.Checked)
+        while iterator.value():
+            item = iterator.value()
+            if item.text(0) != 'All':
+                fitlist.append(int(item.text(0)))
+            iterator += 1
+        print(fitlist)
+
+
+        self.spectra_obj.fit(specific_points = fitlist,plotflag = False, track = False)
+        self.update_plot()
+
+    def plot_fit_result(self):
+        # print(self.fit_result_box.value(), type(self.fit_result_box.value()))
+        self.update_plot(fit_result_idx = self.fit_result_box.value())
+
     """Build the Main window"""
 # class MainWin(QMainWindow):
 #     def __init__(self, parent=None):
@@ -444,25 +459,36 @@ class FitViewWindow(QMainWindow):
         self.textbox = QLineEdit()
         self.textbox.setMinimumWidth(200)
         self.textbox.editingFinished.connect(self.update_plot)
-        
-        self.draw_button = QPushButton("&Draw")
-        self.draw_button.clicked.connect(self.update_plot)
+
+        self.adj_params_button = QPushButton("Adjust Params")
+        self.adj_params_button.clicked.connect(self.show_params_window)
 
         self.fit_button = QPushButton("Fit")
-        self.fit_button.clicked.connect(self.show_params_window)
+        self.fit_button.clicked.connect(self.fit_spectra)
 
         self.grid_cb = QCheckBox("Show &Grid")
         self.grid_cb.setChecked(False)
         self.grid_cb.stateChanged.connect(self.update_plot)
 
+        self.spectra_plot_box = QSpinBox()
+        self.spectra_plot_box.setMaximum(len(self.spectra_obj.isub)-1)
+        self.spectra_plot_box.setMinimum(0)
+        self.spectra_plot_box.valueChanged.connect(self.update_plot)
 
-        slider_label = QLabel('Bar width (%):')
-        self.slider = QSlider(Qt.Horizontal)
-        self.slider.setRange(1, 100)
-        self.slider.setValue(20)
-        self.slider.setTracking(True)
-        self.slider.setTickPosition(QSlider.TicksBothSides)
-        self.slider.valueChanged.connect(self.update_plot)
+        self.fit_result_cb = QCheckBox("Fit Results")
+        self.fit_result_cb.setChecked(False)
+        self.fit_result_cb.stateChanged.connect(self.update_plot)
+
+        # self.fit_result_box.setMaximum(np.max(self.limits[par.name]))
+        # self.fit_result_box.setMinimum(np.min(self.limits[par.name]))
+
+        # slider_label = QLabel('Set xlims:')
+        # self.slider = QSlider(Qt.Horizontal)
+        # self.slider.setRange(np.min(self.spectra_obj.esub), np.max(self.spectra_obj.esub))
+        # self.slider.setValue(np.min(self.spectra_obj.esub))
+        # self.slider.setTracking(True)
+        # self.slider.setTickPosition(QSlider.TicksBothSides)
+        # self.slider.valueChanged.connect(self.update_plot)
 
 
 
@@ -482,8 +508,7 @@ class FitViewWindow(QMainWindow):
         """Layout with box sizers"""
         hbox = QHBoxLayout()
         
-        for w in [  self.textbox, self.draw_button,self.fit_button, self.grid_cb,
-                    slider_label, self.slider]:
+        for w in [self.adj_params_button, self.fit_button, self.grid_cb, self.fit_result_cb, self.spectra_plot_box]:
             hbox.addWidget(w)
             hbox.setAlignment(w, Qt.AlignVCenter)
         
