@@ -44,7 +44,8 @@ from IPython import embed as shell
 class SampleHandler(QWidget):
     def __init__(self,treeparent = None, treechildren = None):
         QWidget.__init__(self)
-
+        
+        self.SpectraWindows = {}
         s = xps_peakfit.sample.sample(overview=False)
         xps_peakfit.io.load_sample(s, filepath = '/Volumes/GoogleDrive/Shared drives/StOQD/sample_library/ALD/205/XPS_205.hdf5',\
             experiment_name = 'depth_profile_1')
@@ -59,7 +60,7 @@ class SampleHandler(QWidget):
         self.tree.itemChanged[QTreeWidgetItem, int].connect(self.vrfs_selected)
         self.iter = 0
         self.add_tree()        
-              
+        self.connect_sampletree()
         self.tree.show() 
 
         self.adtreebutton = QPushButton('addtree', self)
@@ -113,6 +114,7 @@ class SampleHandler(QWidget):
                 iterlist.append(item.text(0))    
             iterator += 1
         self.updatelist =  iterlist
+        # self.show_fit_window()
         # print(self.updatelist)
 
     def handleButton(self):
@@ -124,15 +126,41 @@ class SampleHandler(QWidget):
 
     def show_fit_window(self):
         print(self.updatelist)
-        print(dir(self.sample_obj.__dict__[self.updatelist[0]]))
-        self.SpectraWindows = {}
-        self.SpectraWindows[self.updatelist[0]] = FitViewWindow(spectra_obj = self.sample_obj.__dict__[self.updatelist[0]])
-        self.SpectraWindows[self.updatelist[0]].show()
+        # print(dir(self.sample_obj.__dict__[self.updatelist[0]]))
+        if self.updatelist != []:
+            for spectra in self.updatelist:
+                
+                self.SpectraWindows[spectra] = FitViewWindow(spectra_obj = self.sample_obj.__dict__[spectra])
+                self.SpectraWindows[spectra].show()
 
 
     def cleartree(self):
         self.tree.clear()
         self.iter=0
+
+
+    def connect_sampletree(self):
+        # self.sampletreeWindow.button.clicked.connect(self.plot_tree_choices)  # Not sure why this is here, clicking on window initiates self.plot_tree_choices
+        self.tree.itemChanged[QTreeWidgetItem, int].connect(self.plot_tree_choices)
+        
+        # self.sampletreeWindow.tree.itemClicked[QTreeWidgetItem, int].connect(self.plot_tree_choices)
+
+    def plot_tree_choices(self, item, column):
+        print(item.text(0))
+        if item.checkState(column) == Qt.Checked:
+            print(item.text(0),'Item Checked')
+            # self.update_plot(sample = self.xpssamp,data = item.text(0))
+
+    #     elif item.checkState(column) == Qt.Unchecked:
+    #         print('yay')
+            # shell()
+            # print(item.text(0),'Item Unchecked')
+            # print(dir(item.parent))
+            # print(item.parent())
+            # print(item.parent().text(0))
+            # self.canvas.axes.cla()
+
+
 
 class FitViewWindow(QMainWindow):
     
@@ -145,7 +173,7 @@ class FitViewWindow(QMainWindow):
 
         # self.mod = None
         self.spectra_obj = spectra_obj
-        print(self.spectra_obj.mod)
+        # print(self.spectra_obj.mod)
 
         self.create_menu()
         self.create_main_frame()
@@ -204,9 +232,9 @@ class FitViewWindow(QMainWindow):
 
         # clear the axes and redraw the plot anew
         #
-        print(self.spectra_plot_box.value())
+        # print(self.spectra_plot_box.value())
         # print(self.fit_result_cb.value())
-        print(self.fit_result_cb.isChecked())
+        # print(self.fit_result_cb.isChecked())
         self.axes.cla()        
 
         self.axes.grid(self.grid_cb.isChecked())
@@ -280,11 +308,9 @@ class FitViewWindow(QMainWindow):
     def update_val(self,v):
         sender = self.sender()
 
-
-        m = np.min(self.paramsWindow.ctrl_lims[sender.objectName()])    # Is this inefficient?
-        M = np.max(self.paramsWindow.ctrl_lims[sender.objectName()])
         n = self.paramsWindow.paramwidgets[sender.objectName()].N
-
+        m = self.paramsWindow.paramwidgets[sender.objectName()].ctrl_limits_min
+        M = self.paramsWindow.paramwidgets[sender.objectName()].ctrl_limits_max
         pval = np.round(100*(m + v*(M - m)/n))/100
 
         self.spectra_obj.params[sender.objectName()].set(value = pval )
@@ -309,7 +335,7 @@ class FitViewWindow(QMainWindow):
 
     def update_vary(self,var):
         sender = self.sender()
-        self.spectra_objparams[sender.title()].set(vary = var)
+        self.spectra_obj.params[sender.title()].set(vary = var)
         self.update_plot()
         # print(vary)
 

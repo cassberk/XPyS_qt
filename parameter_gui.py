@@ -9,7 +9,11 @@ import lmfit as lm
 import pickle
 import os
 import numpy as np
+from numpy import finfo, float64
+tiny = finfo(float64).eps
 
+
+from IPython import embed as shell
 
 class ParameterWindow(QMainWindow):
     def __init__(self, parent=None,model = None, pairlist = None, element_ctrl = None, params = None, E = None):
@@ -47,10 +51,11 @@ class ParameterWindow(QMainWindow):
         self.setWindowTitle("Fit Parameters")
         # self.resize(425, 392)        
 
+        
+        self.paramwidgets = {p_name:ParamGroupBox(par = p,limits = self.ctrl_lims[p_name])\
+                for p_name, p in self.params.items() if p_name in self.rel_pars}
 
-        self.paramwidgets = {_:ParamGroupBox(par = p,limits = self.ctrl_lims)\
-                for _, p in self.params.items() if _ in self.rel_pars}
-
+        # shell()
 
         layout = QVBoxLayout()
         for group in self.modgroups:
@@ -72,49 +77,26 @@ class ParamGroupBox(QWidget):
     def __init__(self, par,limits, number_of_slider_points = 100):
         super(ParamGroupBox, self).__init__()
         self.par = par
-        self.limits = limits
+        self.ctrl_limits_min = limits[0]
+        self.ctrl_limits_max = limits[1]
         self.N = number_of_slider_points 
-        print(self.par.name)
-        print(limits[self.par.name])
-        # print('min: '+str(int(np.round(np.min(limits[self.par.name])*100))))
-        # print('max: '+str(int(np.round(np.max(limits[self.par.name])*100))))
-        # print('val: '+str(int(np.round(self.par.value*100))))
+
         
 
         self.label = QLabel()  
         self.label.setObjectName(self.par.name)
         self.slider = QSlider(Qt.Horizontal)
-        # self.slider = DoubleSlider(Qt.Horizontal)
         self.slider.setObjectName(self.par.name)
         
-        # self.slider.setMaximum( np.max(limits[self.par.name]) )
-        # self.slider.setMinimum( np.min(limits[self.par.name]) ) 
-        # self.slider.setInterval(1/100) 
-        m = np.min(self.limits[self.par.name])
-        M = np.max(self.limits[self.par.name])
-
-        slideval = np.round( (self.par.value - m)/( (M-m)/self.N ) )
-
-        self.slider.setValue(slideval)
-
-        # self.slider.setMinimum(int(np.round(np.min(limits[self.par.name])/100 ) ) )
-        # self.slider.setMaximum(int(np.round(np.max(limits[self.par.name])/100 ) ) )
-        # self.slider.setValue(self.par.value)
-
-        # self.slider.setMinimum(int(np.round(np.min(limits[self.par.name])/100 ) ) )
-        # self.slider.setMaximum(int(np.round(np.max(limits[self.par.name])/100 ) ) )
-        # self.slider.setValue(int(np.round(self.par.value/100)))
-
         # self.slider.setFocusPolicy(Qt.StrongFocus)
         # self.slider.setTickPosition(QSlider.TicksBothSides)
         # self.slider.setTickInterval(2000)
         # self.slider.setSingleStep(1)
 
         self.numbox = QDoubleSpinBox()
-        self.numbox.setMaximum(np.max(self.limits[par.name]))
-        self.numbox.setMinimum(np.min(self.limits[par.name]))
-
         self.numbox.setValue(self.par.value)
+
+        self.set_par_control_limits()
 
         self.minbox = QDoubleSpinBox()
         # self.minbox.setMinimum(np.min(limits[par.name]))
@@ -130,6 +112,8 @@ class ParamGroupBox(QWidget):
         self.expr_text = QLineEdit()
         self.expr_text.setText(self.par.expr)
 
+        self.ResetSliderMaxButton = QPushButton('Reset Slider', self)
+        self.ResetSliderMaxButton.clicked.connect(self.reset_slidermax)
         
         self.slider.valueChanged[int].connect(self.update_spinbox)  #When the slider is modified
         self.numbox.editingFinished.connect(self.update_slider)  # When the numbox is modified
@@ -150,7 +134,28 @@ class ParamGroupBox(QWidget):
         vbox.addWidget(self.expr_text)
         vbox.addLayout(limlay)
         vbox.addWidget(self.slider)
+        vbox.addWidget(self.ResetSliderMaxButton)
 
+    def set_par_control_limits(self):
+        self.numbox.setMaximum(self.ctrl_limits_max)
+        self.numbox.setMinimum(self.ctrl_limits_min)
+        m = self.ctrl_limits_min
+        M = self.ctrl_limits_max
+
+        slideval = np.round( (self.numbox.value() - m)/( (M-m)/self.N ) )
+        # shell()
+        if not np.isnan(slideval):
+            self.slider.setValue(slideval)
+
+
+
+    def reset_slidermax(self):
+        print(self.numbox.value())
+        old_val = self.numbox.value()
+        self.ctrl_limits_max = 2*old_val
+        self.set_par_control_limits()
+        print('numbox value:',self.numbox.value())
+        print('numbox value:',self.numbox.value())
 
     def update_slider(self):
         sender = self.sender()
@@ -160,9 +165,10 @@ class ParamGroupBox(QWidget):
         # spinbox_value uses float/ doubles type
         # '*100' is used to convert it into integer as QSlider
         # only register integer type
-        m = np.min(self.limits[sender.objectName()])
-        M = np.max(self.limits[sender.objectName()])
-
+        # m = np.min(self.limits[sender.objectName()])
+        # M = np.max(self.limits[sender.objectName()])
+        m = np.min(self.ctrl_limits_min)
+        M = np.max(self.ctrl_limits_max)
         slideval = np.round( (self.numbox.value() - m)/( (M-m)/self.N ) )
 
         self.slider.setValue(slideval)
@@ -175,9 +181,11 @@ class ParamGroupBox(QWidget):
         # Need to convert the value from integer into float
         # and divides it by 100
         # self.numbox.setValue(float(value))
-        m = np.min(self.limits[sender.objectName()])
-        M = np.max(self.limits[sender.objectName()])
+        # m = np.min(self.limits[sender.objectName()])
+        # M = np.max(self.limits[sender.objectName()])
 
+        m = np.min(self.ctrl_limits_min)
+        M = np.max(self.ctrl_limits_max)
         numboxval = np.round(100*(m + v*(M - m)/self.N ))/100
 
         self.numbox.setValue(numboxval)
