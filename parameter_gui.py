@@ -94,21 +94,19 @@ class ParamGroupBox(QWidget):
         # self.slider.setSingleStep(1)
 
         self.numbox = QDoubleSpinBox()
+        self.numbox.setMaximum(self.ctrl_limits_max)    # Need to set max and min before value 
+        self.numbox.setMinimum(self.ctrl_limits_min)
         self.numbox.setValue(self.par.value)
-
+        print(self.par.value)
+        print(self.numbox.value())
         self.set_par_control_limits()
 
         self.minbox = QDoubleSpinBox()
-        # self.minbox.setMinimum(np.min(limits[par.name]))
-        # self.minbox.setMaximum(np.max(limits[par.name]))
         self.minbox.setValue(self.par.min)
 
         self.maxbox = QDoubleSpinBox()
-        # self.maxbox.setMinimum(np.min(limits[par.name]))
-        # self.maxbox.setMaximum(np.max(limits[par.name]))
         self.maxbox.setValue(self.par.max)
-        # print('max' + str(self.par.max))
-        # print('min' + str(self.par.min))
+
         self.expr_text = QLineEdit()
         self.expr_text.setText(self.par.expr)
 
@@ -120,6 +118,15 @@ class ParamGroupBox(QWidget):
 
         self.layout = QGridLayout()
         self.groupbox = QGroupBox(self.par.name)
+        # color_string = QVariant(self.color)
+        # color_string.convert(QVariant.String)
+        # self.groupbox.setStyleSheet("QGroupBox { background-color: \
+        # rgb(255, 255, 0); border: 3px solid rgb(255, 0, 0); }")
+        # self.groupbox.setStyleSheet("QGroupBox { background-color: \
+        # rgb(100, 100, 0); }")
+        # self.groupbox.setStyleSheet(
+        #     f"QGroupBox {{ color: {color_string.value()}; "
+        #     f"font-size: {self._size_str()}}};")
         self.groupbox.setCheckable(True)
         self.groupbox.setChecked(self.par.vary)
         self.layout.addWidget(self.groupbox)
@@ -142,7 +149,15 @@ class ParamGroupBox(QWidget):
         m = self.ctrl_limits_min
         M = self.ctrl_limits_max
 
+        print(self.par.name)
+        print('slider value pre:',self.slider.value())
+        print('min',m)
+        print('max',M)
         slideval = np.round( (self.numbox.value() - m)/( (M-m)/self.N ) )
+        print('slider value post:',self.slider.value())
+
+        print('numbox value:',self.numbox.value())
+        print('here slideval',slideval)
         # shell()
         if not np.isnan(slideval):
             self.slider.setValue(slideval)
