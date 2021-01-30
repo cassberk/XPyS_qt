@@ -15,6 +15,24 @@ tiny = finfo(float64).eps
 
 from IPython import embed as shell
 
+
+class ParSignal(QWidget,lm.parameter.Parameter):
+    valueChanged = pyqtSignal(object)
+
+    def __init__(self, parameter=None):
+        super(ParSignal, self).__init__(name = parameter.name)
+        self._par = parameter
+
+    @property
+    def value(self):
+        return self._par.value
+
+    @value.setter
+    def value(self, val):
+        self._par.set(value = val)
+        self.valueChanged.emit(val)
+
+
 class ParameterWindow(QMainWindow):
     def __init__(self, parent=None,model = None, pairlist = None, element_ctrl = None, params = None, E = None):
         super(ParameterWindow, self).__init__(parent)
@@ -76,7 +94,8 @@ class ParameterWindow(QMainWindow):
 class ParamGroupBox(QWidget):
     def __init__(self, par,limits, number_of_slider_points = 100):
         super(ParamGroupBox, self).__init__()
-        self.par = par
+        self.par = ParSignal(parameter = par)
+        # self.par = par
         self.ctrl_limits_min = limits[0]
         self.ctrl_limits_max = limits[1]
         self.N = number_of_slider_points 
@@ -116,6 +135,8 @@ class ParamGroupBox(QWidget):
         self.slider.valueChanged[int].connect(self.update_spinbox)  #When the slider is modified
         self.numbox.editingFinished.connect(self.update_slider)  # When the numbox is modified
 
+        self.par.valueChanged.connect(self.parchangetrial)
+
         self.layout = QGridLayout()
         self.groupbox = QGroupBox(self.par.name)
         # color_string = QVariant(self.color)
@@ -143,6 +164,9 @@ class ParamGroupBox(QWidget):
         vbox.addWidget(self.slider)
         vbox.addWidget(self.ResetSliderMaxButton)
 
+    def parchangetrial(self):
+        print('connected my brother')
+        
     def set_par_control_limits(self):
         self.numbox.setMaximum(self.ctrl_limits_max)
         self.numbox.setMinimum(self.ctrl_limits_min)
@@ -174,7 +198,7 @@ class ParamGroupBox(QWidget):
 
     def update_slider(self):
         sender = self.sender()
-        
+        self.par.value = self.slider.value()
         # print('numboxtrig' + str(sender.minimum()))
         
         # spinbox_value uses float/ doubles type

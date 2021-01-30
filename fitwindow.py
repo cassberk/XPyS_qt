@@ -23,6 +23,21 @@ from qtio import load_sample
 
 from IPython import embed as shell
 
+# class ParSignal(QWidget,lm.parameter.Parameter):
+#     valueChanged = pyqtSignal(object)
+
+#     def __init__(self, parameter=None):
+#         super(ParSignal, self).__init__(name = parameter.name)
+#         self._par = parameter
+
+#     @property
+#     def value(self):
+#         return self._par.value
+
+#     @value.setter
+#     def value(self, val):
+#         self._par.set(value = val)
+#         self.valueChanged.emit(val)
 
 class FitViewWindow(QMainWindow):
     
@@ -35,14 +50,21 @@ class FitViewWindow(QMainWindow):
 
         # self.mod = None
         self.spectra_obj = spectra_obj
+        # shell()
+        # self.params = {}
+        # for par in spectra_obj.params.keys():
+            # self.params[par] = ParSignal(parameter = spectra_obj.params[par])
+        # self.params = ParSignal(parameter = spectra_obj.params['Nb_52_amplitude'])
+        # shell()
         # print(self.spectra_obj.mod)
 
         self.create_menu()
         self.create_main_frame()
+        
         self.create_status_bar()
         self.textbox.setText('1 2 3 4')
         self.update_plot()
-
+        # shell()
     def save_plot(self):
         file_choices = "PNG (*.png)|*.png"
         
@@ -125,18 +147,6 @@ class FitViewWindow(QMainWindow):
         self.fig.tight_layout()
         self.canvas.draw()
 
-    """A QTree Widget Window for controlling which samples are plotted and fit"""
-    def show_sampletree_window(self,treeparent = None, treechildren = None):
-        if self.sampletreeWindow is None:
-            self.sampletreeWindow = data_tree.DataTreeHandler(treeparent = treeparent,treechildren=treechildren)
-            self.sampletreeWindow.show()
-            self.connect_sampletree()
-
-        else:
-            self.sampletreeWindow.close()
-            self.sampletreeWindow = None  # Discard reference, close window.
-            # self.disconnect_parameter()
-
     def connect_sampletree(self):
         # self.sampletreeWindow.button.clicked.connect(self.plot_tree_choices)  # Not sure why this is here, clicking on window initiates self.plot_tree_choices
         self.sampletreeWindow.tree.itemChanged[QTreeWidgetItem, int].connect(self.plot_tree_choices)
@@ -150,6 +160,7 @@ class FitViewWindow(QMainWindow):
                 element_ctrl = self.spectra_obj.element_ctrl, params = self.spectra_obj.params, E = self.spectra_obj.E)
 
             self.paramsWindow.show()
+            shell()
             self.connect_parameters()
 
         else:
@@ -176,7 +187,8 @@ class FitViewWindow(QMainWindow):
         pval = np.round(100*(m + v*(M - m)/n))/100
 
         self.spectra_obj.params[sender.objectName()].set(value = pval )
-        # print(self.spectra_obj.params[sender.objectName()].value)
+        print('signalpar',self.paramsWindow.paramwidgets[sender.objectName()].par.value)
+        print('spec ob par',self.spectra_obj.params[sender.objectName()].value)
         # print(str(sender.value())+' '+str(self.params[sender.objectName()].value))
         self.update_plot()
 
