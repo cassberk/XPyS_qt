@@ -20,8 +20,9 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
+import h5py
 import numpy as np
-import matplotlib
+import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
@@ -32,14 +33,60 @@ from qtdata_io import load_excel
 sys.path.append("/Users/cassberk/code")
 import xps_peakfit.io
 import xps_peakfit.sample
+
+import xps_peakfit.models.Nb3d.nb_oxide_analysis as nbox
+import xps_peakfit.models.Si2p.si_oxide_analysis as siox
+
 from copy import deepcopy as dc
 
 from parameter_gui import ParameterWindow
 from fitwindow import FitViewWindow
+from OverviewWindow import OverviewWindow
 import data_tree
 from qtio import load_sample
 
 from IPython import embed as shell
+
+
+
+class ExpChooseWindow(QWidget):
+
+    def __init__(self,files):
+        super().__init__()
+        self.files = files
+        self.initUI()
+
+    def initUI(self):
+
+        vbox = QVBoxLayout(self)
+        hbox = QHBoxLayout()
+
+        self.listWidget = QListWidget(self)
+
+        self.listWidget.addItems([file for file in self.files])
+
+        self.ExperimentSelectButton = QPushButton('Select', self)
+        # self.ExperimentSelectButton.clicked.connect(self.onClearClicked)
+
+        vbox.addWidget(self.listWidget)
+        hbox.addWidget(self.ExperimentSelectButton )
+        vbox.addLayout(hbox)
+
+        self.setLayout(vbox)
+
+        self.setGeometry(300, 300, 350, 250)
+        self.setWindowTitle('QListWidget')
+        self.show()
+
+
+    # def onClearClicked(self):
+
+    #     self.listWidget.clear()
+
+    # def onCountClicked(self):
+
+    #     QMessageBox.information(self, "Info", 
+    #         f'# of birds {self.listWidget.count()}')
 
 
 class SampleHandler(QWidget):
@@ -47,48 +94,142 @@ class SampleHandler(QWidget):
         QWidget.__init__(self)
         
         self.SpectraWindows = {}
+        self.OverviewWindow = {}
+        self.show_sampletree_window()
         # cd = combodemo()
         # cd.show()
-        s = xps_peakfit.sample.sample(overview=False)
-        xps_peakfit.io.load_sample(s, filepath = '/Volumes/GoogleDrive/Shared drives/StOQD/sample_library/ALD/205/XPS_205.hdf5',\
-            experiment_name = 'depth_profile_1')
-        self.sample_obj = s
-        self.show_sampletree_window(treeparent = s.sample_name, \
-            treechildren = s.element_scans)
+        # s = xps_peakfit.sample.sample(overview=False)
+        # s = xps_peakfit.io.load_sample(filepath = '/Volumes/GoogleDrive/Shared drives/StOQD/sample_library/Films/A205/XPS/A205.hdf5',\
+        #     experiment_name = 'depth_profile_1')
+        # self.sample = s
+        # self.show_sampletree_window(treeparent = s.sample_name, \
+        #     treechildren = s.element_scans)
 
 
     def show_sampletree_window(self,treeparent = None, treechildren = None):
         self.treeparent = treeparent
         self.children = treechildren
         self.tree = QTreeWidget(self)
-        self.tree.itemChanged[QTreeWidgetItem, int].connect(self.vrfs_selected)
-        self.iter = 0
-        self.add_tree()        
-        self.connect_sampletree()
+        if treeparent != None:
+            self.tree.itemChanged[QTreeWidgetItem, int].connect(self.vrfs_selected)
+            self.iter = 0
+            self.add_tree()        
+            self.connect_sampletree()
         self.tree.show() 
 
-        self.adtreebutton = QPushButton('addtree', self)
-        self.adtreebutton.clicked.connect(self.add_tree)
+        self.addSampleButton = QPushButton('Load Sample', self)
+        self.addSampleButton.clicked.connect(self.loadFiles)
 
-        self.button = QPushButton('Print', self)
-        self.button.clicked.connect(self.vrfs_selected)
+        # self.button = QPushButton('Print', self)
+        # self.button.clicked.connect(self.vrfs_selected)
 
-        # self.clearbutton = QPushButton('cleartree', self)
-        # self.clearbutton.clicked.connect(self.cleartree)
+        self.overview_button = QPushButton('Overview Analysis', self)
+        self.overview_button.clicked.connect(self.plot_overview)
+        self.overview_button.setObjectName('overview_analysis')
+        self.plot_all_cb = QCheckBox("Raw Plot")
+        self.plot_all_cb.setChecked(False)
+        self.plot_all_cb.setObjectName('raw')
+        self.plot_bg_cb = QCheckBox("Background Sub")
+        self.plot_bg_cb.setChecked(False)
+        self.plot_bg_cb.setObjectName('bg')
+        self.plot_atp_cb = QCheckBox("Atomic Percent Plot")
+        self.plot_atp_cb.setChecked(False)
+        self.plot_atp_cb.setObjectName('atomic_percent')
 
-        self.fitwindowbutton = QPushButton('fit window', self)
+
+        self.overview_plot_button = QPushButton("Plot Overview")
+        self.overview_plot_button.clicked.connect(self.plot_overview)
+        self.overview_plot_button.setObjectName('overview_plot')
+
+        self.clearbutton = QPushButton('Remove Sample', self)
+        self.clearbutton.clicked.connect(self.clear_sample)
+
+        self.fitwindowbutton = QPushButton('Fit', self)
         self.fitwindowbutton.clicked.connect(self.show_fit_window)
+
+        self.saveSampleButton = QPushButton('Save Sample', self)
+        self.saveSampleButton.clicked.connect(self.saveSample)
+        self.saveSpectraButton = QPushButton('Save Spectra', self)
+        self.saveSpectraButton.clicked.connect(self.saveSpectra)
 
         self.linkampbutton = QPushButton('Link Amplitudes', self)
         self.linkampbutton.clicked.connect(self.link_amplitudes)
 
+        self.shellbutton = QPushButton('Shell Debug', self)
+        self.shellbutton.clicked.connect(self.shelldebug)
+
+        overviewHbox = QHBoxLayout()
+        overviewHbox.addWidget(self.plot_all_cb)
+        overviewHbox.addWidget(self.plot_bg_cb)
+        overviewHbox.addWidget(self.plot_atp_cb)
+        overviewHbox.addWidget(self.overview_plot_button)
+
+        SaveLayout = QHBoxLayout()
+        SaveLayout.addWidget(self.saveSampleButton)
+        SaveLayout.addWidget(self.saveSpectraButton)
+
         layout = QVBoxLayout(self)
         layout.addWidget(self.tree)
-        layout.addWidget(self.adtreebutton)
-        layout.addWidget(self.button)
-        layout.addWidget(self.linkampbutton)
+        layout.addWidget(self.addSampleButton)
+        layout.addLayout(overviewHbox)
+        layout.addWidget(self.overview_button)
         layout.addWidget(self.fitwindowbutton)
+        layout.addLayout(SaveLayout)
+        layout.addWidget(self.clearbutton)
+        layout.addWidget(self.linkampbutton)
+        layout.addWidget(self.shellbutton)
 
+    def loadFiles(self):
+        filter = "All Files (*)"
+        file_name = QFileDialog()
+        file_name.setFileMode(QFileDialog.ExistingFiles)
+        _files,_ = file_name.getOpenFileNames(self, ".hdf5", "/Volumes/GoogleDrive/Shared drives/StOQD/sample_library", filter)
+        # shell()
+        if not _files == []:
+            with h5py.File(_files[0],'r+') as f:
+                self.experiments = [grp for grp in f.keys()]
+            print(self.experiments)
+            # if len([grp for grp in self.experiments]) > 1:
+            self.expchooseWindow = ExpChooseWindow(self.experiments)
+            self.expchooseWindow.ExperimentSelectButton.clicked.connect(lambda: self.choose_experiment(_files[0]))
+            self.expchooseWindow.show()
+        # else:
+        # self.sample = xps_peakfit.io.load_sample(filepath = _files[0],\
+        #     experiment_name = self.experiments[0])
+    def saveSample(self):
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        fileName, _ = QFileDialog.getSaveFileName(self,"QFileDialog.getSaveFileName()",self.sample.load_path,"All Files (*);;Text Files (*.txt)", options=options)
+        if fileName:
+            self.savehdf5_sample()
+
+    def saveSpectra(self):
+        self.vrfs_selected()
+        print(self.updatelist)
+            # print(fileName)
+        for spec in self.updatelist:
+            # print(spec,'will be saved to', self.sample.load_path)
+            xps_peakfit.io.save_spectra_analysis(self.sample.__dict__[spec],filepath = self.sample.load_path, experiment_name = self.sample.experiment_name,force = True)
+            # print(self.sample.experiment_name)
+
+    def build_sample_tree(self):
+        self.treeparent = self.sample.sample_name
+        self.children = self.sample.element_scans
+        self.tree.itemChanged[QTreeWidgetItem, int].connect(self.vrfs_selected)
+        self.iter = 0
+        self.add_tree()        
+        self.connect_sampletree()
+
+    def choose_experiment(self,file):
+        self.loadhdf5_sample(filepath = file, experiment_name = self.expchooseWindow.listWidget.selectedItems()[0].text())
+        self.expchooseWindow.close()   
+
+    def loadhdf5_sample(self,filepath,experiment_name):
+        self.sample = xps_peakfit.io.load_sample(filepath = filepath, experiment_name = experiment_name)
+        self.build_sample_tree()
+    
+    def savehdf5_sample(self):
+        xps_peakfit.io.save_sample(self.sample,filepath = self.sample.load_path, experiment_name = self.sample.experiment_name,force = True)
 
     def add_tree(self):
         i=self.iter
@@ -110,7 +251,8 @@ class SampleHandler(QWidget):
             #     child2.setCheckState(0, Qt.Unchecked)
         self.iter +=1
 
-    def clear_tree(self):
+    def clear_sample(self):
+        del self.sample
         self.tree.clear()
         self.iter=0
 
@@ -134,39 +276,47 @@ class SampleHandler(QWidget):
              iterator += 1
 
     def show_fit_window(self):
-        print(self.updatelist)
-        # print(dir(self.sample_obj.__dict__[self.updatelist[0]]))
+        # print(self.updatelist)
+        # print(dir(self.sample.__dict__[self.updatelist[0]]))
         if self.updatelist != []:
             for spectra in self.updatelist:
                 
-                self.SpectraWindows[spectra] = FitViewWindow(spectra_obj = self.sample_obj.__dict__[spectra])
+                self.SpectraWindows[spectra] = FitViewWindow(spectra_obj = self.sample.__dict__[spectra])
                 self.SpectraWindows[spectra].show()
 
 
-    def link_amplitudes(self):
+    def plot_overview(self):
 
-        # plists = []
-        # for spectra in self.updatelist:
-        #     plists.append([par for component_pars in [model_component._param_names for model_component in self.sample_obj.__dict__[spectra].mod.components]\
-        #     for par in component_pars if 'amplitude' in par])
-        plists = {}
+        sender = self.sender()
+
+        if sender.objectName() == 'overview_analysis':
+            self.sample.xps_overview(plotflag = False)
+        for cb in [self.plot_all_cb,self.plot_bg_cb,self.plot_atp_cb]:
+            if cb.isChecked():
+                overview_type = cb.objectName()
+                self.OverviewWindow[overview_type] = OverviewWindow(sample_obj = self.sample,which_plot = overview_type)
+                self.OverviewWindow[overview_type].show()
+
+
+
+
+
+    def shelldebug(self):
+        shell()
+
+
+    ### Linking Parameter amplitudes
+    def link_amplitudes(self):
+        self.plists = {}
         for spectra in self.updatelist:
-            plists[spectra] = [par for component_pars in [model_component._param_names for model_component in self.sample_obj.__dict__[spectra].mod.components]\
+            self.plists[spectra] = [par for component_pars in [model_component._param_names for model_component in self.sample.__dict__[spectra].mod.components]\
             for par in component_pars if 'amplitude' in par]
 
-        self.amplink_window = LinkAmplitudesWindow(parameter_lists = plists)
+        self.amplink_window = LinkAmplitudesWindow(parameter_lists = self.plists)
         self.amplink_window.show()
 
-        # for i in range(len(plists)):
-        #     # print('i',i,'is',self.amplink_window.cb[i].currentText())
-        #     for j in range(len(plists)):
-        #         # print('j',j,'is',self.amplink_window.cb[j].currentText())
-        #         if i!=j:
-        #             self.SpectraWindows[spectra].paramsWindow[par].slider.valueChanged.connect(self.SpectraWindows[spectra].update_val)
-        #             print(self.amplink_window.cb[i].currentText(),'linked to',self.amplink_window.cb[j].currentText())
-        self.parsig = ParSignal(parameter = self.sample_obj.__dict__['Nb3d'].params['Nb_52_amplitude'])
-        self.parsig.valueChanged.connect(self.itworked)
-        shell()
+        self.amplink_window.link_button.clicked.connect(self.link_parameters)
+
         # for spectra1 in plists.keys():
         #     # print('i',i,'is',self.amplink_window.cb[i].currentText())
         #     for spectra2 in plists.keys():
@@ -174,11 +324,26 @@ class SampleHandler(QWidget):
         #         if spectra1 != spectra2:
         #             par1 = self.amplink_window.cb[spectra1].currentText()
         #             par2 = self.amplink_window.cb[spectra2].currentText()
-        #             self.SpectraWindows[spectra1].paramsWindow.paramwidgets[par1].slider.valueChanged.connect(self.update_slider)
+        # #             self.SpectraWindows[spectra1].paramsWindow.paramwidgets[par1].slider.valueChanged.connect(self.update_slider)
         #             print(par1,'linked to',par2)
         #             self.parsig = ParSignal(sample_obj.__dict__[spectra1].params[par1])
-    def itworked(self,v):
+
+    # def write_link_pars(self):
+    #     self.linked_pars = 
+    def link_parameters(self,v):
+        for spectra1 in self.plists.keys():
+            # print('i',i,'is',self.amplink_window.cb[i].currentText())
+            for spectra2 in self.plists.keys():
+                # print('j',j,'is',self.amplink_window.cb[j].currentText())
+                if spectra1 != spectra2:
+                    par1 = self.amplink_window.cb[spectra1].currentText()
+                    par2 = self.amplink_window.cb[spectra2].currentText()
+
+                    self.SpectraWindows[spectra1].params[par1].valueChanged.connect(self.SpectraWindows[spectra2].params[par2].slotvalue)
+
+
         print('Signal sentm value',v)
+
     def update_slider(self):
         sender = self.sender()
         m = np.min(self.ctrl_limits_min)
@@ -218,21 +383,6 @@ class SampleHandler(QWidget):
             print(item.text(0),'Item Checked')
             # self.update_plot(sample = self.xpssamp,data = item.text(0))
 
-class ParSignal(QWidget):
-    valueChanged = pyqtSignal(object)
-
-    def __init__(self, parameter=None):
-        super(ParSignal, self).__init__()
-        self._par = parameter
-
-    @property
-    def value(self):
-        return self._par.value
-
-    @value.setter
-    def value(self, val):
-        self._par.set(value = val)
-        self.valueChanged.emit(val)
 
 
 class LinkAmplitudesWindow(QWidget):
@@ -240,12 +390,6 @@ class LinkAmplitudesWindow(QWidget):
         QWidget.__init__(self)
 
         layout = QHBoxLayout()
-        # self.cb = []
-        # for plist in enumerate(parameter_lists):
-        #     self.cb.append(QComboBox())
-        #     self.cb[plist[0]].addItems(plist[1])
-        #     # self.cb[plist[0]].currentIndexChanged.connect(self.selectionchange)
-        #     layout.addWidget(self.cb[plist[0]])
 
         self.cb = {}
         for spectra,plist in parameter_lists.items():
@@ -253,6 +397,10 @@ class LinkAmplitudesWindow(QWidget):
             self.cb[spectra].addItems(plist)
             # self.cb[plist[0]].currentIndexChanged.connect(self.selectionchange)
             layout.addWidget(self.cb[spectra])
+
+        self.link_button = QPushButton('Link', self)
+        layout.addWidget(self.link_button)
+        # self.button.clicked.connect(self.vrfs_selected)
 
         self.setLayout(layout)
         self.setWindowTitle("Link Parameters")

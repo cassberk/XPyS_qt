@@ -16,21 +16,21 @@ tiny = finfo(float64).eps
 from IPython import embed as shell
 
 
-class ParSignal(QWidget,lm.parameter.Parameter):
-    valueChanged = pyqtSignal(object)
+# class ParSignal(QWidget,lm.parameter.Parameter):
+#     valueChanged = pyqtSignal(object)
 
-    def __init__(self, parameter=None):
-        super(ParSignal, self).__init__(name = parameter.name)
-        self._par = parameter
+#     def __init__(self, parameter=None):
+#         super(ParSignal, self).__init__(name = parameter.name)
+#         self._par = parameter
 
-    @property
-    def value(self):
-        return self._par.value
+#     @property
+#     def value(self):
+#         return self._par.value
 
-    @value.setter
-    def value(self, val):
-        self._par.set(value = val)
-        self.valueChanged.emit(val)
+#     @value.setter
+#     def value(self, val):
+#         self._par.set(value = val)
+#         self.valueChanged.emit(val)
 
 
 class ParameterWindow(QMainWindow):
@@ -94,8 +94,8 @@ class ParameterWindow(QMainWindow):
 class ParamGroupBox(QWidget):
     def __init__(self, par,limits, number_of_slider_points = 100):
         super(ParamGroupBox, self).__init__()
-        self.par = ParSignal(parameter = par)
-        # self.par = par
+        # self.par = ParSignal(parameter = par)
+        self.par = par
         self.ctrl_limits_min = limits[0]
         self.ctrl_limits_max = limits[1]
         self.N = number_of_slider_points 
@@ -116,26 +116,36 @@ class ParamGroupBox(QWidget):
         self.numbox.setMaximum(self.ctrl_limits_max)    # Need to set max and min before value 
         self.numbox.setMinimum(self.ctrl_limits_min)
         self.numbox.setValue(self.par.value)
-        print(self.par.value)
-        print(self.numbox.value())
+        self.numbox.setObjectName(self.par.name)
+        
+        # print(self.par.name)
+        # print(self.numbox.objectName())
         self.set_par_control_limits()
 
         self.minbox = QDoubleSpinBox()
+        self.minbox.setMinimum(0)
+        self.minbox.setMaximum(np.inf)
         self.minbox.setValue(self.par.min)
-
+        self.minbox.setObjectName(self.par.name)
+        
         self.maxbox = QDoubleSpinBox()
+        self.maxbox.setMinimum(0)
+        self.maxbox.setMaximum(np.inf)
         self.maxbox.setValue(self.par.max)
+        self.maxbox.setObjectName(self.par.name)
 
         self.expr_text = QLineEdit()
         self.expr_text.setText(self.par.expr)
+        self.expr_text.setObjectName(self.par.name)
 
-        self.ResetSliderMaxButton = QPushButton('Reset Slider', self)
-        self.ResetSliderMaxButton.clicked.connect(self.reset_slidermax)
+        if 'amplitude' in self.par.name:
+            self.ResetSliderMaxButton = QPushButton('Reset Slider', self)
+            self.ResetSliderMaxButton.clicked.connect(self.reset_slidermax)
         
-        self.slider.valueChanged[int].connect(self.update_spinbox)  #When the slider is modified
-        self.numbox.editingFinished.connect(self.update_slider)  # When the numbox is modified
+        # self.slider.valueChanged[int].connect(self.update_spinbox)  #When the slider is modified
+        # self.numbox.editingFinished.connect(self.update_slider)  # When the numbox is modified
 
-        self.par.valueChanged.connect(self.parchangetrial)
+        # self.par.valueChanged.connect(self.parchangetrial)
 
         self.layout = QGridLayout()
         self.groupbox = QGroupBox(self.par.name)
@@ -162,7 +172,8 @@ class ParamGroupBox(QWidget):
         vbox.addWidget(self.expr_text)
         vbox.addLayout(limlay)
         vbox.addWidget(self.slider)
-        vbox.addWidget(self.ResetSliderMaxButton)
+        if 'amplitude' in self.par.name:
+            vbox.addWidget(self.ResetSliderMaxButton)
 
     def parchangetrial(self):
         print('connected my brother')
@@ -173,15 +184,15 @@ class ParamGroupBox(QWidget):
         m = self.ctrl_limits_min
         M = self.ctrl_limits_max
 
-        print(self.par.name)
-        print('slider value pre:',self.slider.value())
-        print('min',m)
-        print('max',M)
+        # print(self.par.name)
+        # print('slider value pre:',self.slider.value())
+        # print('min',m)
+        # print('max',M)
         slideval = np.round( (self.numbox.value() - m)/( (M-m)/self.N ) )
-        print('slider value post:',self.slider.value())
+        # print('slider value post:',self.slider.value())
 
-        print('numbox value:',self.numbox.value())
-        print('here slideval',slideval)
+        # print('numbox value:',self.numbox.value())
+        # print('here slideval',slideval)
         # shell()
         if not np.isnan(slideval):
             self.slider.setValue(slideval)

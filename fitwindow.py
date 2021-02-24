@@ -15,6 +15,7 @@ from qtdata_io import load_excel
 sys.path.append("/Users/cassberk/code")
 import xps_peakfit.io
 import xps_peakfit.sample
+import xps_peakfit.models.models
 from copy import deepcopy as dc
 
 from parameter_gui import ParameterWindow
@@ -23,21 +24,94 @@ from qtio import load_sample
 
 from IPython import embed as shell
 
-# class ParSignal(QWidget,lm.parameter.Parameter):
-#     valueChanged = pyqtSignal(object)
+class OptionListWindow(QWidget):
 
-#     def __init__(self, parameter=None):
-#         super(ParSignal, self).__init__(name = parameter.name)
-#         self._par = parameter
+    def __init__(self,files):
+        super().__init__()
+        self.files = files
+        self.initUI()
 
-#     @property
-#     def value(self):
-#         return self._par.value
+    def initUI(self):
 
-#     @value.setter
-#     def value(self, val):
-#         self._par.set(value = val)
-#         self.valueChanged.emit(val)
+        vbox = QVBoxLayout(self)
+        hbox = QHBoxLayout()
+
+        self.listWidget = QListWidget(self)
+
+        self.listWidget.addItems([file for file in self.files])
+
+        self.ExperimentSelectButton = QPushButton('Select', self)
+        # self.ExperimentSelectButton.clicked.connect(self.onClearClicked)
+
+        vbox.addWidget(self.listWidget)
+        hbox.addWidget(self.ExperimentSelectButton )
+        vbox.addLayout(hbox)
+
+        self.setLayout(vbox)
+
+        self.setGeometry(300, 300, 350, 250)
+        self.setWindowTitle('Choose Model')
+        self.show()
+
+class QParameter(QWidget,lm.parameter.Parameter):
+    valueChanged = pyqtSignal(object)
+
+    def __init__(self, parameter=None):
+        super(QParameter, self).__init__(name = parameter.name, value=parameter.value, vary=parameter.vary, min=parameter.min, max=parameter.max,
+                 expr=parameter.expr, brute_step=parameter.brute_step, user_data=parameter.user_data)
+        self._par = parameter
+
+    @property
+    def value(self):
+        return self._par.value
+
+    @value.setter
+    def value(self, val):
+        self._par.set(value = val)
+        self.valueChanged.emit(val)
+
+    @property
+    def expr(self):
+        return self._par.expr
+
+    @expr.setter
+    def expr(self, exp):
+        self._par.set(expr = exp)
+        self.valueChanged.emit(exp)
+
+    def slotvalue(self,v):
+        if v > self._par.min:
+            v = self._par.min
+        self._par.set(value = v)
+
+
+    # @property
+    # def min(self):
+    #     return self._par.min
+
+    # @min.setter
+    # def min(self, m):
+    #     self._par.set(min = m)
+    #     self.valueChanged.emit(m)
+
+    # @property
+    # def max(self):
+    #     return self._par.max
+
+    # @max.setter
+    # def expr(self, M):
+    #     self._par.set(max = M)
+    #     self.valueChanged.emit(M)
+
+    # @property
+    # def vary(self):
+    #     return self._par.vary
+
+    # @vary.setter
+    # def expr(self, v):
+    #     self._par.set(vary = v)
+    #     self.valueChanged.emit(v)
+
 
 class FitViewWindow(QMainWindow):
     
@@ -52,12 +126,15 @@ class FitViewWindow(QMainWindow):
         self.spectra_obj = spectra_obj
         # shell()
         # self.params = {}
-        # for par in spectra_obj.params.keys():
-            # self.params[par] = ParSignal(parameter = spectra_obj.params[par])
+        if hasattr(self.spectra_obj,'params'):
+            self.params = {par:QParameter(parameter = self.spectra_obj.params[par]) for par in spectra_obj.params.keys()}
         # self.params = ParSignal(parameter = spectra_obj.params['Nb_52_amplitude'])
         # shell()
         # print(self.spectra_obj.mod)
-
+        # self.par = QParameter(parameter = spectra_obj.params['Nb_52_amplitude'])
+        # print(self.par)
+        # print(self.spectra_obj.params['Nb_52_amplitude'])
+        # shell()
         self.create_menu()
         self.create_main_frame()
         
@@ -126,10 +203,11 @@ class FitViewWindow(QMainWindow):
 
         if not self.fit_result_cb.isChecked():
             self.axes.plot(self.spectra_obj.esub, self.spectra_obj.isub[self.spectra_plot_box.value()],'o')
-            self.axes.plot(self.spectra_obj.esub, self.spectra_obj.mod.eval(self.spectra_obj.params, x = self.spectra_obj.esub))
-            for pairs in enumerate(self.spectra_obj.pairlist):
-                self.axes.fill_between(self.spectra_obj.esub,\
-                    sum([self.spectra_obj.mod.eval_components(params = self.spectra_obj.params,x = self.spectra_obj.esub)[comp] for comp in pairs[1]]), alpha=0.3)
+            if hasattr(self.spectra_obj,'params'):
+                self.axes.plot(self.spectra_obj.esub, self.spectra_obj.mod.eval(self.params, x = self.spectra_obj.esub))
+                for pairs in enumerate(self.spectra_obj.pairlist):
+                    self.axes.fill_between(self.spectra_obj.esub,\
+                        sum([self.spectra_obj.mod.eval_components(params = self.params,x = self.spectra_obj.esub)[comp] for comp in pairs[1]]), alpha=0.3)
 
         elif self.fit_result_cb.isChecked():
             self.axes.plot(self.spectra_obj.esub, self.spectra_obj.isub[self.spectra_plot_box.value()],'o')
@@ -140,12 +218,31 @@ class FitViewWindow(QMainWindow):
         
 
 
-        self.axes.set_xlabel('Binding Energy (eV)',fontsize=30)
-        self.axes.set_ylabel('Counts/sec',fontsize=30)
+        self.axes.set_xlabel('Binding Energy (eV)',fontsize=24)
+        self.axes.set_ylabel('Counts/sec',fontsize=24)
         self.axes.set_xlim(np.max(self.spectra_obj.esub),np.min(self.spectra_obj.esub))
         self.axes.tick_params(labelsize=20)
         self.fig.tight_layout()
         self.canvas.draw()
+
+
+
+    def autofit(self):
+        sender = self.sender()
+        if sender.objectName() == 'afButton':
+            self.spectra_obj.autofit = xps_peakfit.autofit.autofit.autofit(self.spectra_obj.esub,self.spectra_obj.isub[self.spectra_plot_box.value()],self.spectra_obj.orbital)
+
+        if self.autofit_cb.isChecked():
+            if not hasattr(self.spectra_obj,'autofit'):
+                self.spectra_obj.autofit = xps_peakfit.autofit.autofit.autofit(self.spectra_obj.esub,self.spectra_obj.isub[self.spectra_plot_box.value()],self.spectra_obj.orbital)
+            elif hasattr(self,'autofit'):
+                self.spectra_obj.autofit.guess_params(energy = self.spectra_obj.esub,intensity = self.spectra_obj.isub[self.spectra_plot_box.value()])
+            for par in self.spectra_obj.autofit.guess_pars.keys():
+                self.spectra_obj.params[par].value = self.spectra_obj.autofit.guess_pars[par]
+                print(par,self.spectra_obj.autofit.guess_pars[par])
+            self.update_plot()
+
+    # self.autofit = xps_peakfit.autofit.autofit.autofit(self.spectra_object.esub,self.spectra_object.isub[specnum[0]],self.spectra_object.orbital)
 
     def connect_sampletree(self):
         # self.sampletreeWindow.button.clicked.connect(self.plot_tree_choices)  # Not sure why this is here, clicking on window initiates self.plot_tree_choices
@@ -157,10 +254,9 @@ class FitViewWindow(QMainWindow):
         if self.paramsWindow is None:
 
             self.paramsWindow = ParameterWindow(model = self.spectra_obj.mod, pairlist = self.spectra_obj.pairlist, \
-                element_ctrl = self.spectra_obj.element_ctrl, params = self.spectra_obj.params, E = self.spectra_obj.E)
+                element_ctrl = self.spectra_obj.element_ctrl, params = self.params, E = self.spectra_obj.E)
 
             self.paramsWindow.show()
-            shell()
             self.connect_parameters()
 
         else:
@@ -172,13 +268,19 @@ class FitViewWindow(QMainWindow):
     def connect_parameters(self):
         for par in self.paramsWindow.paramwidgets.keys():
 
-            self.paramsWindow.paramwidgets[par].slider.valueChanged.connect(self.update_val)
-            self.paramsWindow.paramwidgets[par].minbox.editingFinished.connect(self.update_min)
-            self.paramsWindow.paramwidgets[par].maxbox.editingFinished.connect(self.update_max)
+            # Connect QParameter and Slider
+            self.paramsWindow.paramwidgets[par].slider.valueChanged.connect(self.update_Qpar_val_from_slider)
+            self.params[par].valueChanged.connect(self.update_slider)
+
+            # Connect QParameter and Numbox
+            self.paramsWindow.paramwidgets[par].numbox.valueChanged.connect(self.update_Qpar_val_from_numbox)
+            self.params[par].valueChanged.connect(self.update_numbox)
+            self.paramsWindow.paramwidgets[par].minbox.valueChanged.connect(self.update_min)
+            self.paramsWindow.paramwidgets[par].maxbox.valueChanged.connect(self.update_max)
             self.paramsWindow.paramwidgets[par].expr_text.editingFinished.connect(self.update_expr)
             self.paramsWindow.paramwidgets[par].groupbox.toggled.connect(self.update_vary)
 
-    def update_val(self,v):
+    def update_Qpar_val_from_slider(self,v):
         sender = self.sender()
 
         n = self.paramsWindow.paramwidgets[sender.objectName()].N
@@ -186,21 +288,38 @@ class FitViewWindow(QMainWindow):
         M = self.paramsWindow.paramwidgets[sender.objectName()].ctrl_limits_max
         pval = np.round(100*(m + v*(M - m)/n))/100
 
-        self.spectra_obj.params[sender.objectName()].set(value = pval )
-        print('signalpar',self.paramsWindow.paramwidgets[sender.objectName()].par.value)
-        print('spec ob par',self.spectra_obj.params[sender.objectName()].value)
-        # print(str(sender.value())+' '+str(self.params[sender.objectName()].value))
+        self.params[sender.objectName()].set(value = pval )
         self.update_plot()
+
+    def update_Qpar_val_from_numbox(self,v):
+        sender = self.sender()
+        nval = np.round(100*v)/100
+
+        self.params[sender.objectName()].set(value = nval )
+        self.update_plot()
+
+    def update_slider(self, v):
+        sender = self.sender()
+        m = self.paramsWindow.paramwidgets[sender.name].ctrl_limits_min
+        M = self.paramsWindow.paramwidgets[sender.name].ctrl_limits_max
+        slideval = np.round( (v - m)/( (M-m)/self.paramsWindow.paramwidgets[sender.name].N ) )
+        self.paramsWindow.paramwidgets[sender.name].slider.setValue(slideval)
+        # self.update_plot()
+
+    def update_numbox(self, v):
+        sender = self.sender()
+        parval = np.round(100*v)/100
+        self.paramsWindow.paramwidgets[sender.name].numbox.setValue(parval)
 
     def update_min(self,minimum):
         sender = self.sender()
-        self.spectra_obj.params[sender.objectName()].set(min= minimum )
-        self.update_plot()
+        # shell()
+        self.spectra_obj.params[sender.objectName()].min = minimum
 
     def update_max(self,maximum):
         sender = self.sender()
-        self.spectra_obj.params[sender.objectName()].set(max = maximum )
-        self.update_plot()
+        # shell()
+        self.spectra_obj.params[sender.objectName()].max = maximum 
 
     def update_expr(self,expression):
         sender = self.sender()
@@ -212,6 +331,24 @@ class FitViewWindow(QMainWindow):
         self.spectra_obj.params[sender.title()].set(vary = var)
         self.update_plot()
         # print(vary)
+
+
+    def load_model(self):
+        # model_filename = self.spectra_obj.orbital
+        # model_filepath = find_files(model_filename,'/Users/cassberk/code/xps_peakfit/models/self.spectra_obj.orbital')
+
+        ldd_mod = xps_peakfit.models.models.load_model(self.ModelListWindow.listWidget.selectedItems()[0].text())
+        self.spectra_obj.mod = ldd_mod[0]
+        self.spectra_obj.params = ldd_mod[1]
+        self.spectra_obj.pairlist = ldd_mod[2]
+        self.spectra_obj.element_ctrl = ldd_mod[3]
+        self.params = {par:QParameter(parameter = self.spectra_obj.params[par]) for par in self.spectra_obj.params.keys()}
+        self.ModelListWindow.close()
+
+    def choose_model(self):
+        self.ModelListWindow = OptionListWindow(xps_peakfit.models.models.model_list(startpath = os.path.join('/Users/cassberk/code/xps_peakfit/models',self.spectra_obj.orbital)))
+        self.ModelListWindow.ExperimentSelectButton.clicked.connect(self.load_model)
+        self.ModelListWindow.show()
 
 
     """Here we build the window to fit the spectra"""
@@ -227,7 +364,7 @@ class FitViewWindow(QMainWindow):
         print(fitlist)
 
 
-        self.spectra_obj.fit(specific_points = fitlist,plotflag = False, track = False)
+        self.spectra_obj.fit(specific_points = fitlist,autofit = self.autofit_cb.isChecked(), plotflag = False, track = False)
         self.update_plot()
 
     """Build the Main window"""
@@ -238,7 +375,7 @@ class FitViewWindow(QMainWindow):
         5x4 inches, 100 dots-per-inch
         """
         self.dpi = 100
-        self.fig = Figure((5.0, 4.0), dpi=self.dpi)
+        self.fig = Figure((7.0, 6.0), dpi=self.dpi)
         self.canvas = FigureCanvas(self.fig)
         self.canvas.setParent(self.main_frame)
         
@@ -263,6 +400,9 @@ class FitViewWindow(QMainWindow):
         self.adj_params_button = QPushButton("Adjust Params")
         self.adj_params_button.clicked.connect(self.show_params_window)
 
+        self.load_model_button = QPushButton("Load Model")
+        self.load_model_button.clicked.connect(self.choose_model)
+
         self.fit_button = QPushButton("Fit")
         self.fit_button.clicked.connect(self.fit_spectra)
 
@@ -273,12 +413,22 @@ class FitViewWindow(QMainWindow):
         self.spectra_plot_box = QSpinBox()
         self.spectra_plot_box.setMaximum(len(self.spectra_obj.isub)-1)
         self.spectra_plot_box.setMinimum(0)
+        self.spectra_plot_box.valueChanged.connect(self.autofit)
         self.spectra_plot_box.valueChanged.connect(self.update_plot)
 
         self.fit_result_cb = QCheckBox("Fit Results")
         self.fit_result_cb.setChecked(False)
         self.fit_result_cb.stateChanged.connect(self.update_plot)
 
+        self.autofitButton = QPushButton("Autofit")
+        self.autofitButton.clicked.connect(self.autofit)
+        self.autofitButton.setObjectName('afButton')
+
+        self.autofit_cb = QCheckBox("Autofit")
+        self.autofit_cb.setChecked(False)
+        # self.autofit_cb.stateChanged.connect(self.autofit)
+
+# self.autofit = xps_peakfit.autofit.autofit.autofit(self.spectra_object.esub,self.spectra_object.isub[specnum[0]],self.spectra_object.orbital)
         # slider_label = QLabel('Set xlims:')
         # self.slider = QSlider(Qt.Horizontal)
         # self.slider.setRange(np.min(self.spectra_obj.esub), np.max(self.spectra_obj.esub))
@@ -305,7 +455,7 @@ class FitViewWindow(QMainWindow):
         """Layout with box sizers"""
         hbox = QHBoxLayout()
         
-        for w in [self.adj_params_button, self.fit_button, self.grid_cb, self.fit_result_cb, self.spectra_plot_box]:
+        for w in [self.adj_params_button,self.load_model_button, self.fit_button, self.grid_cb, self.autofitButton, self.autofit_cb,self.fit_result_cb, self.spectra_plot_box]:
             hbox.addWidget(w)
             hbox.setAlignment(w, Qt.AlignVCenter)
         
