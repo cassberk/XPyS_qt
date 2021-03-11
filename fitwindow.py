@@ -16,6 +16,7 @@ sys.path.append("/Users/cassberk/code")
 import xps_peakfit.io
 import xps_peakfit.sample
 import xps_peakfit.models.models
+from xps_peakfit.gui_element_dicts import *
 from copy import deepcopy as dc
 
 from parameter_gui import ParameterWindow
@@ -207,14 +208,17 @@ class FitViewWindow(QMainWindow):
                 self.axes.plot(self.spectra_obj.esub, self.spectra_obj.mod.eval(self.params, x = self.spectra_obj.esub))
                 for pairs in enumerate(self.spectra_obj.pairlist):
                     self.axes.fill_between(self.spectra_obj.esub,\
-                        sum([self.spectra_obj.mod.eval_components(params = self.params,x = self.spectra_obj.esub)[comp] for comp in pairs[1]]), alpha=0.3)
+                        sum([self.spectra_obj.mod.eval_components(params = self.params,x = self.spectra_obj.esub)[comp] for comp in pairs[1]]), \
+                            color = element_color[pairs[1][0]],alpha=0.3)
 
         elif self.fit_result_cb.isChecked():
             self.axes.plot(self.spectra_obj.esub, self.spectra_obj.isub[self.spectra_plot_box.value()],'o')
-            self.axes.plot(self.spectra_obj.esub, self.spectra_obj.mod.eval(self.spectra_obj.fit_results[self.spectra_plot_box.value()].params, x = self.spectra_obj.esub))
-            for pairs in enumerate(self.spectra_obj.pairlist):
-                self.axes.fill_between(self.spectra_obj.esub,\
-                    sum([self.spectra_obj.mod.eval_components(params = self.spectra_obj.fit_results[self.spectra_plot_box.value()].params,x = self.spectra_obj.esub)[comp] for comp in pairs[1]]), alpha=0.3)
+            if hasattr(self.spectra_obj,'fit_results') and (self.spectra_obj.fit_results[self.spectra_plot_box.value()] != []):
+                self.axes.plot(self.spectra_obj.esub, self.spectra_obj.mod.eval(self.spectra_obj.fit_results[self.spectra_plot_box.value()].params, x = self.spectra_obj.esub))
+                for pairs in enumerate(self.spectra_obj.pairlist):
+                    self.axes.fill_between(self.spectra_obj.esub,\
+                        sum([self.spectra_obj.mod.eval_components(params = self.spectra_obj.fit_results[self.spectra_plot_box.value()].params,x = self.spectra_obj.esub)[comp] for comp in pairs[1]]), \
+                            color = element_color[pairs[1][0]],alpha=0.3)
         
 
 
@@ -251,6 +255,9 @@ class FitViewWindow(QMainWindow):
 
     """Here we build the window to interactively change the parameters"""
     def show_params_window(self):
+        if not hasattr(self.spectra_obj,'mod'):
+            print('No Model Loaded')
+            return
         if self.paramsWindow is None:
 
             self.paramsWindow = ParameterWindow(model = self.spectra_obj.mod, pairlist = self.spectra_obj.pairlist, \
@@ -315,20 +322,25 @@ class FitViewWindow(QMainWindow):
         sender = self.sender()
         # shell()
         self.spectra_obj.params[sender.objectName()].min = minimum
+        self.params[sender.objectName()].min = minimum
 
     def update_max(self,maximum):
         sender = self.sender()
         # shell()
         self.spectra_obj.params[sender.objectName()].max = maximum 
+        self.params[sender.objectName()].max = maximum 
 
     def update_expr(self,expression):
         sender = self.sender()
         self.spectra_obj.params[sender.objectName()].set(expr = expression )
+        self.params[sender.objectName()].set(expr = expression )
         self.update_plot()
 
     def update_vary(self,var):
         sender = self.sender()
+        print(var)
         self.spectra_obj.params[sender.title()].set(vary = var)
+        self.params[sender.title()].set(vary = var)
         self.update_plot()
         # print(vary)
 
@@ -364,8 +376,15 @@ class FitViewWindow(QMainWindow):
         print(fitlist)
 
 
-        self.spectra_obj.fit(specific_points = fitlist,autofit = self.autofit_cb.isChecked(), plotflag = False, track = False)
+        self.spectra_obj.fit(specific_points = fitlist,autofit = self.autofit_cb.isChecked(), update_with_prev_pars = self.update_prev_pars_cb.isChecked(),plotflag = False, track = False)
         self.update_plot()
+
+    def fit_result_to_params(self):
+
+        self.spectra_obj.params = self.spectra_obj.fit_results[self.spectra_plot_box.value()].params.copy() 
+        self.params = {par:QParameter(parameter = self.spectra_obj.params[par]) for par in self.spectra_obj.params.keys()}
+
+
 
     """Build the Main window"""
     def create_main_frame(self):
@@ -416,6 +435,10 @@ class FitViewWindow(QMainWindow):
         self.spectra_plot_box.valueChanged.connect(self.autofit)
         self.spectra_plot_box.valueChanged.connect(self.update_plot)
 
+        self.fit_result_to_param_button = QPushButton("Fit Result to Params")
+        self.fit_result_to_param_button.clicked.connect(self.fit_result_to_params)
+
+
         self.fit_result_cb = QCheckBox("Fit Results")
         self.fit_result_cb.setChecked(False)
         self.fit_result_cb.stateChanged.connect(self.update_plot)
@@ -426,6 +449,9 @@ class FitViewWindow(QMainWindow):
 
         self.autofit_cb = QCheckBox("Autofit")
         self.autofit_cb.setChecked(False)
+
+        self.update_prev_pars_cb = QCheckBox("Update with prev pars")
+        self.update_prev_pars_cb.setChecked(False)
         # self.autofit_cb.stateChanged.connect(self.autofit)
 
 # self.autofit = xps_peakfit.autofit.autofit.autofit(self.spectra_object.esub,self.spectra_object.isub[specnum[0]],self.spectra_object.orbital)
@@ -455,9 +481,20 @@ class FitViewWindow(QMainWindow):
         """Layout with box sizers"""
         hbox = QHBoxLayout()
         
-        for w in [self.adj_params_button,self.load_model_button, self.fit_button, self.grid_cb, self.autofitButton, self.autofit_cb,self.fit_result_cb, self.spectra_plot_box]:
-            hbox.addWidget(w)
-            hbox.setAlignment(w, Qt.AlignVCenter)
+        fitControlLayout = QVBoxLayout()
+        fitControlLayout.addWidget(self.fit_button)
+        fitControlLayout.addWidget(self.update_prev_pars_cb)
+
+        specControlLayout = QVBoxLayout()
+        specControlLayout.addWidget(self.spectra_plot_box)
+        specControlLayout.addWidget(self.fit_result_to_param_button)
+
+        for w in [self.adj_params_button,self.load_model_button, fitControlLayout, self.grid_cb, self.autofitButton, self.autofit_cb,self.fit_result_cb, specControlLayout]:
+            if (w is fitControlLayout) or (w is specControlLayout):
+                hbox.addLayout(w)
+            else:
+                hbox.addWidget(w)
+                hbox.setAlignment(w, Qt.AlignVCenter)
         
         vbox = QVBoxLayout()
         vbox.addWidget(self.canvas)
