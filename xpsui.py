@@ -42,11 +42,107 @@ from copy import deepcopy as dc
 from parameter_gui import ParameterWindow
 from fitwindow import FitViewWindow
 from OverviewWindow import OverviewWindow
+from bgSubWindow import bgSubWindow
 import data_tree
 from qtio import load_sample
 
 from IPython import embed as shell
 
+# class bgSubWindow(QWidget):
+
+#     def __init__(self,sample):
+#         super().__init__()
+#         self.sample = sample
+#         self.initUI()
+
+#     def initUI(self):
+
+#         self.bgSpecSelect = QComboBox(self)
+#         self.bgSpecSelect.addItems([orb for orb in self.sample.element_scans])
+#         self.bgSpecSelect.currentIndexChanged.connect(self.load_bgVals)
+
+#         self.bgTypeBox = QComboBox(self)
+#         self.bgTypeBox.addItems(['linear','shirley','UT2'])
+
+#         self.minBox= QDoubleSpinBox()
+#         self.maxBox= QDoubleSpinBox()
+
+#         self.par1Box = QDoubleSpinBox()
+#         self.par1Box.setMaximum(np.inf)
+#         self.par1Box.setMinimum(-np.inf)
+
+#         self.par2Box = QDoubleSpinBox()
+#         self.par2Box.setMaximum(np.inf)
+#         self.par2Box.setMinimum(-np.inf)
+
+#         self.par1_cb = QCheckBox("B")
+#         self.par2_cb= QCheckBox("C")
+
+#         self.setBG_Button = QPushButton('Select', self)
+#         self.setBG_Button.setObjectName('setBGbutton')
+#         self.setBG_Button.clicked.connect(self.set_bgPars)
+
+#         self.load_bgVals()
+
+#         vbox = QVBoxLayout(self)
+#         hbox_bglims = QHBoxLayout()
+#         hbox_bgpars = QHBoxLayout()
+
+#         vbox.addWidget(self.bgSpecSelect)
+#         vbox.addWidget(self.bgTypeBox)
+
+#         hbox_bglims.addWidget(self.minBox)
+#         hbox_bglims.addWidget(self.maxBox)
+#         vbox.addLayout(hbox_bglims)
+
+#         hbox_bgpars.addWidget(self.par1Box)
+#         hbox_bgpars.addWidget(self.par1_cb)
+#         hbox_bgpars.addWidget(self.par2Box)
+#         hbox_bgpars.addWidget(self.par2_cb)
+#         vbox.addLayout(hbox_bgpars)
+
+#         vbox.addWidget(self.setBG_Button )
+
+#         self.setLayout(vbox)
+
+#         self.setGeometry(300, 300, 350, 250)
+#         self.setWindowTitle('QListWidget')
+#         self.show()
+
+#     def load_bgVals(self):
+#         bgtype_idx = self.bgTypeBox.findText(self.sample.bg_info[self.bgSpecSelect.currentText()][1])
+#         self.bgTypeBox.setCurrentIndex(bgtype_idx)
+
+#         self.minBox.setMaximum(np.max(self.sample.__dict__[self.bgSpecSelect.currentText()].E))  # Need to set max and min before value 
+#         self.minBox.setMinimum(np.min(self.sample.__dict__[self.bgSpecSelect.currentText()].E)) 
+#         self.minBox.setValue(self.sample.bg_info[self.bgSpecSelect.currentText()][0][0])
+
+#         self.maxBox.setMaximum(np.max(self.sample.__dict__[self.bgSpecSelect.currentText()].E))  # Need to set max and min before value 
+#         self.maxBox.setMinimum(np.min(self.sample.__dict__[self.bgSpecSelect.currentText()].E)) 
+#         self.maxBox.setValue(self.sample.bg_info[self.bgSpecSelect.currentText()][0][1])
+        
+#         if len(self.sample.bg_info[self.bgSpecSelect.currentText()]) > 2:
+#             self.par1Box.setValue(self.sample.bg_info[self.bgSpecSelect.currentText()][2][0])
+#             self.par2Box.setValue(self.sample.bg_info[self.bgSpecSelect.currentText()][2][2])
+
+#             self.par1_cb.setChecked(bool(self.sample.bg_info[self.bgSpecSelect.currentText()][2][0]))
+#             self.par2_cb.setChecked(bool(self.sample.bg_info[self.bgSpecSelect.currentText()][2][3]))
+#         else:
+
+#             self.par1Box.setValue(0)
+#             self.par2Box.setValue(0)
+
+#             self.par1_cb.setChecked(False)
+#             self.par2_cb.setChecked(False)
+
+#     def set_bgPars(self):
+#         self.sample.bg_info[self.bgSpecSelect.currentText()][1] = self.bgTypeBox.currentText()
+#         self.sample.bg_info[self.bgSpecSelect.currentText()][0] = tuple([self.minBox.value(),self.maxBox.value()])
+#         if self.bgTypeBox.currentText() =='UT2':
+#             if len(self.sample.bg_info[self.bgSpecSelect.currentText()]) > 2:
+#                 self.sample.bg_info[self.bgSpecSelect.currentText()][2] = tuple([self.par1Box.value(),int(self.par1_cb.isChecked()),self.par2Box.value(),int(self.par2_cb.isChecked())])
+#             else:
+#                 self.sample.bg_info[self.bgSpecSelect.currentText()].append(tuple([self.par1Box.value(),int(self.par1_cb.isChecked()),self.par2Box.value(),int(self.par2_cb.isChecked())]))
 
 
 class ExpChooseWindow(QWidget):
@@ -120,8 +216,8 @@ class SampleHandler(QWidget):
         self.addSampleButton = QPushButton('Load Sample', self)
         self.addSampleButton.clicked.connect(self.loadFiles)
 
-        # self.button = QPushButton('Print', self)
-        # self.button.clicked.connect(self.vrfs_selected)
+        self.button = QPushButton('Print', self)
+        self.button.clicked.connect(self.vrfs_selected)
 
         self.overview_button = QPushButton('Overview Analysis', self)
         self.overview_button.clicked.connect(self.plot_overview)
@@ -158,6 +254,9 @@ class SampleHandler(QWidget):
         self.shellbutton = QPushButton('Shell Debug', self)
         self.shellbutton.clicked.connect(self.shelldebug)
 
+        self.bgSubButton = QPushButton('bg Sub', self)
+        self.bgSubButton.clicked.connect(self.bgsub)
+
         overviewHbox = QHBoxLayout()
         overviewHbox.addWidget(self.plot_all_cb)
         overviewHbox.addWidget(self.plot_bg_cb)
@@ -178,6 +277,8 @@ class SampleHandler(QWidget):
         layout.addWidget(self.clearbutton)
         layout.addWidget(self.linkampbutton)
         layout.addWidget(self.shellbutton)
+        layout.addWidget(self.button)
+        layout.addWidget(self.bgSubButton)
 
     def loadFiles(self):
         filter = "All Files (*)"
@@ -266,7 +367,7 @@ class SampleHandler(QWidget):
             iterator += 1
         self.updatelist =  iterlist
         # self.show_fit_window()
-        # print(self.updatelist)
+        print(self.updatelist)
 
     def handleButton(self):
          iterator = QTreeWidgetItemIterator(self.tree)
@@ -278,18 +379,22 @@ class SampleHandler(QWidget):
     def show_fit_window(self):
         # print(self.updatelist)
         # print(dir(self.sample.__dict__[self.updatelist[0]]))
+        
+
         if self.updatelist != []:
             for spectra in self.updatelist:
-                
-                self.SpectraWindows[spectra] = FitViewWindow(spectra_obj = self.sample.__dict__[spectra])
-                self.SpectraWindows[spectra].show()
+                if hasattr(self.sample.__dict__[spectra],'isub'):
+                    self.SpectraWindows[spectra] = FitViewWindow(spectra_obj = self.sample.__dict__[spectra])
+                    self.SpectraWindows[spectra].show()
+                else:
+                    print('No bg Subtraction data!')
 
 
     def plot_overview(self):
 
         sender = self.sender()
 
-        if sender.objectName() == 'overview_analysis':
+        if (sender.objectName() == 'overview_analysis') or (sender.objectName() == 'setBGbutton'):
             self.sample.xps_overview(plotflag = False)
         for cb in [self.plot_all_cb,self.plot_bg_cb,self.plot_atp_cb]:
             if cb.isChecked():
@@ -299,7 +404,10 @@ class SampleHandler(QWidget):
 
 
 
-
+    def bgsub(self):
+        self.bgSubWin = bgSubWindow(sample = self.sample)
+        self.bgSubWin.setBG_Button.clicked.connect(self.plot_overview)
+        self.bgSubWin.show()
 
     def shelldebug(self):
         shell()
