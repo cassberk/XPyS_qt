@@ -216,6 +216,9 @@ class SampleHandler(QWidget):
         self.addSampleButton = QPushButton('Load Sample', self)
         self.addSampleButton.clicked.connect(self.loadFiles)
 
+        self.LoadRecentButton = QPushButton('Load Recent Sample', self)
+        self.LoadRecentButton.clicked.connect(self.loadRecent)
+
         self.button = QPushButton('Print', self)
         self.button.clicked.connect(self.vrfs_selected)
 
@@ -270,6 +273,7 @@ class SampleHandler(QWidget):
         layout = QVBoxLayout(self)
         layout.addWidget(self.tree)
         layout.addWidget(self.addSampleButton)
+        layout.addWidget(self.LoadRecentButton)
         layout.addLayout(overviewHbox)
         layout.addWidget(self.overview_button)
         layout.addWidget(self.fitwindowbutton)
@@ -328,9 +332,17 @@ class SampleHandler(QWidget):
     def loadhdf5_sample(self,filepath,experiment_name):
         self.sample = xps_peakfit.io.load_sample(filepath = filepath, experiment_name = experiment_name)
         self.build_sample_tree()
+        with open('recentfile.txt','w') as f:
+            f.write(filepath+','+experiment_name)
     
     def savehdf5_sample(self):
         xps_peakfit.io.save_sample(self.sample,filepath = self.sample.load_path, experiment_name = self.sample.experiment_name,force = True)
+
+    def loadRecent(self):
+        with open('recentfile.txt') as f:
+            paths = [p for p in f.readlines()][0].split(',')
+        print('Opened file: ',paths[0],'Experiment: ',paths[1])
+        self.loadhdf5_sample(paths[0],paths[1])
 
     def add_tree(self):
         i=self.iter
