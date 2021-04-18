@@ -376,7 +376,8 @@ class FitViewWindow(QMainWindow):
         print(fitlist)
 
 
-        self.spectra_obj.fit(specific_points = fitlist,autofit = self.autofit_cb.isChecked(), update_with_prev_pars = self.update_prev_pars_cb.isChecked(),plotflag = False, track = False)
+        self.spectra_obj.fit(specific_points = fitlist,autofit = self.autofit_cb.isChecked(), fit_in_reverse = self.fit_in_reverse_cb.isChecked(), \
+            update_with_prev_pars = self.update_prev_pars_cb.isChecked(),plotflag = False, track = False)
         self.update_plot()
 
     def fit_result_to_params(self):
@@ -452,6 +453,9 @@ class FitViewWindow(QMainWindow):
 
         self.update_prev_pars_cb = QCheckBox("Update with prev pars")
         self.update_prev_pars_cb.setChecked(False)
+
+        self.fit_in_reverse_cb = QCheckBox("Fit in Reverse")
+        self.fit_in_reverse_cb.setChecked(False)
         # self.autofit_cb.stateChanged.connect(self.autofit)
 
 # self.autofit = xps_peakfit.autofit.autofit.autofit(self.spectra_object.esub,self.spectra_object.isub[specnum[0]],self.spectra_object.orbital)
@@ -484,6 +488,7 @@ class FitViewWindow(QMainWindow):
         fitControlLayout = QVBoxLayout()
         fitControlLayout.addWidget(self.fit_button)
         fitControlLayout.addWidget(self.update_prev_pars_cb)
+        fitControlLayout.addWidget(self.fit_in_reverse_cb)
 
         specControlLayout = QVBoxLayout()
         specControlLayout.addWidget(self.spectra_plot_box)
