@@ -1,19 +1,7 @@
 """
-This demo demonstrates how to embed a matplotlib (mpl) plot 
-into a PyQt5 GUI application, including:
+This is an application for fitting xps spectra using the XPyS package.
 
-* Using the navigation toolbar
-* Adding data to the plot
-* Dynamically modifying the plot's properties
-* Processing mpl events
-* Saving the plot to a file from a menu
-
-The main goal is to serve as a basis for developing rich PyQt GUI
-applications featuring mpl plots (using the mpl OO API).
-
-Eli Bendersky (eliben@gmail.com), updated by Ondrej Holesovsky.
-License: this code is in the public domain
-Last modified: 23.12.2019
+Created by: Cassidy Berk, Cassidy.Berk@gmail.com
 """
 import sys, os, random
 from PyQt5.QtCore import *
@@ -44,105 +32,8 @@ from fitwindow import FitViewWindow
 from OverviewWindow import OverviewWindow
 from bgSubWindow import bgSubWindow
 import data_tree
-from qtio import load_sample
 
 from IPython import embed as shell
-
-# class bgSubWindow(QWidget):
-
-#     def __init__(self,sample):
-#         super().__init__()
-#         self.sample = sample
-#         self.initUI()
-
-#     def initUI(self):
-
-#         self.bgSpecSelect = QComboBox(self)
-#         self.bgSpecSelect.addItems([orb for orb in self.sample.element_scans])
-#         self.bgSpecSelect.currentIndexChanged.connect(self.load_bgVals)
-
-#         self.bgTypeBox = QComboBox(self)
-#         self.bgTypeBox.addItems(['linear','shirley','UT2'])
-
-#         self.minBox= QDoubleSpinBox()
-#         self.maxBox= QDoubleSpinBox()
-
-#         self.par1Box = QDoubleSpinBox()
-#         self.par1Box.setMaximum(np.inf)
-#         self.par1Box.setMinimum(-np.inf)
-
-#         self.par2Box = QDoubleSpinBox()
-#         self.par2Box.setMaximum(np.inf)
-#         self.par2Box.setMinimum(-np.inf)
-
-#         self.par1_cb = QCheckBox("B")
-#         self.par2_cb= QCheckBox("C")
-
-#         self.setBG_Button = QPushButton('Select', self)
-#         self.setBG_Button.setObjectName('setBGbutton')
-#         self.setBG_Button.clicked.connect(self.set_bgPars)
-
-#         self.load_bgVals()
-
-#         vbox = QVBoxLayout(self)
-#         hbox_bglims = QHBoxLayout()
-#         hbox_bgpars = QHBoxLayout()
-
-#         vbox.addWidget(self.bgSpecSelect)
-#         vbox.addWidget(self.bgTypeBox)
-
-#         hbox_bglims.addWidget(self.minBox)
-#         hbox_bglims.addWidget(self.maxBox)
-#         vbox.addLayout(hbox_bglims)
-
-#         hbox_bgpars.addWidget(self.par1Box)
-#         hbox_bgpars.addWidget(self.par1_cb)
-#         hbox_bgpars.addWidget(self.par2Box)
-#         hbox_bgpars.addWidget(self.par2_cb)
-#         vbox.addLayout(hbox_bgpars)
-
-#         vbox.addWidget(self.setBG_Button )
-
-#         self.setLayout(vbox)
-
-#         self.setGeometry(300, 300, 350, 250)
-#         self.setWindowTitle('QListWidget')
-#         self.show()
-
-#     def load_bgVals(self):
-#         bgtype_idx = self.bgTypeBox.findText(self.sample.bg_info[self.bgSpecSelect.currentText()][1])
-#         self.bgTypeBox.setCurrentIndex(bgtype_idx)
-
-#         self.minBox.setMaximum(np.max(self.sample.__dict__[self.bgSpecSelect.currentText()].E))  # Need to set max and min before value 
-#         self.minBox.setMinimum(np.min(self.sample.__dict__[self.bgSpecSelect.currentText()].E)) 
-#         self.minBox.setValue(self.sample.bg_info[self.bgSpecSelect.currentText()][0][0])
-
-#         self.maxBox.setMaximum(np.max(self.sample.__dict__[self.bgSpecSelect.currentText()].E))  # Need to set max and min before value 
-#         self.maxBox.setMinimum(np.min(self.sample.__dict__[self.bgSpecSelect.currentText()].E)) 
-#         self.maxBox.setValue(self.sample.bg_info[self.bgSpecSelect.currentText()][0][1])
-        
-#         if len(self.sample.bg_info[self.bgSpecSelect.currentText()]) > 2:
-#             self.par1Box.setValue(self.sample.bg_info[self.bgSpecSelect.currentText()][2][0])
-#             self.par2Box.setValue(self.sample.bg_info[self.bgSpecSelect.currentText()][2][2])
-
-#             self.par1_cb.setChecked(bool(self.sample.bg_info[self.bgSpecSelect.currentText()][2][0]))
-#             self.par2_cb.setChecked(bool(self.sample.bg_info[self.bgSpecSelect.currentText()][2][3]))
-#         else:
-
-#             self.par1Box.setValue(0)
-#             self.par2Box.setValue(0)
-
-#             self.par1_cb.setChecked(False)
-#             self.par2_cb.setChecked(False)
-
-#     def set_bgPars(self):
-#         self.sample.bg_info[self.bgSpecSelect.currentText()][1] = self.bgTypeBox.currentText()
-#         self.sample.bg_info[self.bgSpecSelect.currentText()][0] = tuple([self.minBox.value(),self.maxBox.value()])
-#         if self.bgTypeBox.currentText() =='UT2':
-#             if len(self.sample.bg_info[self.bgSpecSelect.currentText()]) > 2:
-#                 self.sample.bg_info[self.bgSpecSelect.currentText()][2] = tuple([self.par1Box.value(),int(self.par1_cb.isChecked()),self.par2Box.value(),int(self.par2_cb.isChecked())])
-#             else:
-#                 self.sample.bg_info[self.bgSpecSelect.currentText()].append(tuple([self.par1Box.value(),int(self.par1_cb.isChecked()),self.par2Box.value(),int(self.par2_cb.isChecked())]))
 
 
 class ExpChooseWindow(QWidget):
@@ -192,14 +83,7 @@ class SampleHandler(QWidget):
         self.SpectraWindows = {}
         self.OverviewWindow = {}
         self.show_sampletree_window()
-        # cd = combodemo()
-        # cd.show()
-        # s = xps_peakfit.sample.sample(overview=False)
-        # s = xps_peakfit.io.load_sample(filepath = '/Volumes/GoogleDrive/Shared drives/StOQD/sample_library/Films/A205/XPS/A205.hdf5',\
-        #     experiment_name = 'depth_profile_1')
-        # self.sample = s
-        # self.show_sampletree_window(treeparent = s.sample_name, \
-        #     treechildren = s.element_scans)
+
 
 
     def show_sampletree_window(self,treeparent = None, treechildren = None):
