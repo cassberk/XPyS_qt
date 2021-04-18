@@ -13,7 +13,6 @@ from matplotlib.figure import Figure
 import lmfit as lm
 import pickle
 import os
-from qtdata_io import load_excel
 sys.path.append("/Users/cassberk/code")
 import xps_peakfit.io
 import xps_peakfit.sample
@@ -28,7 +27,6 @@ from parameter_gui import ParameterWindow
 from fitwindow import FitViewWindow
 from OverviewWindow import OverviewWindow
 import data_tree
-from qtio import load_sample
 
 from IPython import embed as shell
 
