@@ -165,7 +165,7 @@ class App(QWidget):
                 else:
                     pass
             else:
-                shell()
+                # shell()
                 xps_peakfit.avg.avg_to_hdf5(sample_name = self.samplename.text(),experiment_name = self.experimentname.text(),avgfiles = self.files,savepath = svpth,force = False)
                
 
