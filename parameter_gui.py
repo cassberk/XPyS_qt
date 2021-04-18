@@ -227,7 +227,7 @@ class ParamGroupBox(QWidget):
         sender = self.sender()
 
         # print('slideertrig' + str(sender.minimum()))
-        # QSlider only uses integer typeself.
+        # QSlider only uses integer type
         # Need to convert the value from integer into float
         # and divides it by 100
         # self.numbox.setValue(float(value))
