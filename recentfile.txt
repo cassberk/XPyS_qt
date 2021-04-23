@@ -1,1 +1,1 @@
-/Volumes/GoogleDrive/Shared drives/StOQD/sample_library/Films/A1000/XPS/A1000.hdf5,depth_profile_1
+/Volumes/GoogleDrive/Shared drives/StOQD/sample_library/Resonators/ResD_1800s_037/XPS/ResD_1800s_037.hdf5,surface_profile_1

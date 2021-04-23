@@ -146,3 +146,4 @@ dmypy.json
 
 .DS_Store
 example_scripts/
+recentfile.txt
