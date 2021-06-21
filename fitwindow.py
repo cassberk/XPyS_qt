@@ -12,10 +12,10 @@ import lmfit as lm
 import pickle
 import os
 sys.path.append("/Users/cassberk/code")
-import xps_peakfit.io
-import xps_peakfit.sample
-import xps_peakfit.models.models
-from xps_peakfit.gui_element_dicts import *
+import XPyS.io
+import XPyS.sample
+import XPyS.models
+from XPyS.gui_element_dicts import *
 from copy import deepcopy as dc
 
 from parameter_gui import ParameterWindow
@@ -232,11 +232,11 @@ class FitViewWindow(QMainWindow):
     def autofit(self):
         sender = self.sender()
         if sender.objectName() == 'afButton':
-            self.spectra_obj.autofit = xps_peakfit.autofit.autofit.autofit(self.spectra_obj.esub,self.spectra_obj.isub[self.spectra_plot_box.value()],self.spectra_obj.orbital)
+            self.spectra_obj.autofit = XPyS.autofit.autofit.autofit(self.spectra_obj.esub,self.spectra_obj.isub[self.spectra_plot_box.value()],self.spectra_obj.orbital)
 
         if self.autofit_cb.isChecked():
             if not hasattr(self.spectra_obj,'autofit'):
-                self.spectra_obj.autofit = xps_peakfit.autofit.autofit.autofit(self.spectra_obj.esub,self.spectra_obj.isub[self.spectra_plot_box.value()],self.spectra_obj.orbital)
+                self.spectra_obj.autofit = XPyS.autofit.autofit.autofit(self.spectra_obj.esub,self.spectra_obj.isub[self.spectra_plot_box.value()],self.spectra_obj.orbital)
             elif hasattr(self,'autofit'):
                 self.spectra_obj.autofit.guess_params(energy = self.spectra_obj.esub,intensity = self.spectra_obj.isub[self.spectra_plot_box.value()])
             for par in self.spectra_obj.autofit.guess_pars.keys():
@@ -244,7 +244,7 @@ class FitViewWindow(QMainWindow):
                 print(par,self.spectra_obj.autofit.guess_pars[par])
             self.update_plot()
 
-    # self.autofit = xps_peakfit.autofit.autofit.autofit(self.spectra_object.esub,self.spectra_object.isub[specnum[0]],self.spectra_object.orbital)
+    # self.autofit = XPyS.autofit.autofit.autofit(self.spectra_object.esub,self.spectra_object.isub[specnum[0]],self.spectra_object.orbital)
 
     def connect_sampletree(self):
         # self.sampletreeWindow.button.clicked.connect(self.plot_tree_choices)  # Not sure why this is here, clicking on window initiates self.plot_tree_choices
@@ -345,9 +345,9 @@ class FitViewWindow(QMainWindow):
 
     def load_model(self):
         # model_filename = self.spectra_obj.orbital
-        # model_filepath = find_files(model_filename,'/Users/cassberk/code/xps_peakfit/models/self.spectra_obj.orbital')
+        # model_filepath = find_files(model_filename,'/Users/cassberk/code/XPyS/models/self.spectra_obj.orbital')
 
-        ldd_mod = xps_peakfit.models.models.load_model(self.ModelListWindow.listWidget.selectedItems()[0].text())
+        ldd_mod = XPyS.models.load_model(self.ModelListWindow.listWidget.selectedItems()[0].text())
         self.spectra_obj.mod = ldd_mod[0]
         self.spectra_obj.params = ldd_mod[1]
         self.spectra_obj.pairlist = ldd_mod[2]
@@ -356,7 +356,7 @@ class FitViewWindow(QMainWindow):
         self.ModelListWindow.close()
 
     def choose_model(self):
-        self.ModelListWindow = OptionListWindow(xps_peakfit.models.models.model_list(startpath = os.path.join('/Users/cassberk/code/xps_peakfit/models',self.spectra_obj.orbital)))
+        self.ModelListWindow = OptionListWindow(XPyS.models.model_list(startpath = os.path.join('/Users/cassberk/code/XPyS/saved_models',self.spectra_obj.orbital)))
         self.ModelListWindow.ExperimentSelectButton.clicked.connect(self.load_model)
         self.ModelListWindow.show()
 
@@ -456,7 +456,7 @@ class FitViewWindow(QMainWindow):
         self.fit_in_reverse_cb.setChecked(False)
         # self.autofit_cb.stateChanged.connect(self.autofit)
 
-# self.autofit = xps_peakfit.autofit.autofit.autofit(self.spectra_object.esub,self.spectra_object.isub[specnum[0]],self.spectra_object.orbital)
+# self.autofit = XPyS.autofit.autofit.autofit(self.spectra_object.esub,self.spectra_object.isub[specnum[0]],self.spectra_object.orbital)
         # slider_label = QLabel('Set xlims:')
         # self.slider = QSlider(Qt.Horizontal)
         # self.slider.setRange(np.min(self.spectra_obj.esub), np.max(self.spectra_obj.esub))

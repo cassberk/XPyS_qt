@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import QApplication, QWidget, QInputDialog, QLineEdit, QFil
 from PyQt5.QtGui import QIcon, QStandardItem,QStandardItemModel
 import os
 sys.path.append("/Users/cassberk/code/")
-import xps_peakfit.avg
+import XPyS.avg
 import glob
 import h5py
 from IPython import embed as shell
@@ -161,12 +161,12 @@ class App(QWidget):
                                                 QMessageBox.Yes | QMessageBox.No)
                 if choice == QMessageBox.Yes:
                     print("overwriting")
-                    xps_peakfit.avg.avg_to_hdf5(sample_name = self.samplename.text(),experiment_name = self.experimentname.text(),avgfiles = self.files,savepath = svpth,force = False)
+                    XPyS.avg.avg_to_hdf5(sample_name = self.samplename.text(),experiment_name = self.experimentname.text(),avgfiles = self.files,savepath = svpth,force = False)
                 else:
                     pass
             else:
                 # shell()
-                xps_peakfit.avg.avg_to_hdf5(sample_name = self.samplename.text(),experiment_name = self.experimentname.text(),avgfiles = self.files,savepath = svpth,force = False)
+                XPyS.avg.avg_to_hdf5(sample_name = self.samplename.text(),experiment_name = self.experimentname.text(),avgfiles = self.files,savepath = svpth,force = False)
                
 
 if __name__ == '__main__':

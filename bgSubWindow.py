@@ -14,12 +14,12 @@ import lmfit as lm
 import pickle
 import os
 sys.path.append("/Users/cassberk/code")
-import xps_peakfit.io
-import xps_peakfit.sample
-from xps_peakfit import bkgrds as bksb
+import XPyS.io
+import XPyS.sample
+from XPyS import bkgrds as bksb
 
-import xps_peakfit.models.Nb3d.nb_oxide_analysis as nbox
-import xps_peakfit.models.Si2p.si_oxide_analysis as siox
+import XPyS.saved_models.Nb3d.nb_oxide_analysis as nbox
+import XPyS.saved_models.Si2p.si_oxide_analysis as siox
 
 from copy import deepcopy as dc
 

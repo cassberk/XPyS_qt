@@ -13,9 +13,9 @@ import lmfit as lm
 import pickle
 import os
 sys.path.append("/Users/cassberk/code")
-import xps_peakfit.io
-import xps_peakfit.sample
-import xps_peakfit.models.models
+import XPyS.io
+import XPyS.sample
+import XPyS.models
 
 
 from copy import deepcopy as dc

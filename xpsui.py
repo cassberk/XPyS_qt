@@ -18,11 +18,11 @@ import lmfit as lm
 import pickle
 import os
 sys.path.append("/Users/cassberk/code")
-import xps_peakfit.io
-import xps_peakfit.sample
+import XPyS.io
+import XPyS.sample
 
-import xps_peakfit.models.Nb3d.nb_oxide_analysis as nbox
-import xps_peakfit.models.Si2p.si_oxide_analysis as siox
+import XPyS.saved_models.Nb3d.nb_oxide_analysis as nbox
+import XPyS.saved_models.Si2p.si_oxide_analysis as siox
 
 from copy import deepcopy as dc
 
@@ -182,7 +182,7 @@ class SampleHandler(QWidget):
             self.expchooseWindow.ExperimentSelectButton.clicked.connect(lambda: self.choose_experiment(_files[0]))
             self.expchooseWindow.show()
         # else:
-        # self.sample = xps_peakfit.io.load_sample(filepath = _files[0],\
+        # self.sample = XPyS.io.load_sample(filepath = _files[0],\
         #     experiment_name = self.experiments[0])
     def saveSample(self):
         options = QFileDialog.Options()
@@ -197,7 +197,7 @@ class SampleHandler(QWidget):
             # print(fileName)
         for spec in self.updatelist:
             # print(spec,'will be saved to', self.sample.load_path)
-            xps_peakfit.io.save_spectra_analysis(self.sample.__dict__[spec],filepath = self.sample.load_path, experiment_name = self.sample.experiment_name,force = True)
+            XPyS.io.save_spectra_analysis(self.sample.__dict__[spec],filepath = self.sample.load_path, experiment_name = self.sample.experiment_name,force = True)
             # print(self.sample.experiment_name)
 
     def build_sample_tree(self):
@@ -213,13 +213,13 @@ class SampleHandler(QWidget):
         self.expchooseWindow.close()   
 
     def loadhdf5_sample(self,filepath,experiment_name):
-        self.sample = xps_peakfit.io.load_sample(filepath = filepath, experiment_name = experiment_name)
+        self.sample = XPyS.io.load_sample(filepath = filepath, experiment_name = experiment_name)
         self.build_sample_tree()
         with open('recentfile.txt','w') as f:
             f.write(filepath+','+experiment_name)
     
     def savehdf5_sample(self):
-        xps_peakfit.io.save_sample(self.sample,filepath = self.sample.load_path, experiment_name = self.sample.experiment_name,force = True)
+        XPyS.io.save_sample(self.sample,filepath = self.sample.load_path, experiment_name = self.sample.experiment_name,force = True)
 
     def loadRecent(self):
         with open('recentfile.txt') as f:
