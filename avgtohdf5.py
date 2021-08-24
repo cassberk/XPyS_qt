@@ -166,6 +166,8 @@ class App(QWidget):
                     pass
             else:
                 # shell()
+                print('1')
+                print(self.files)
                 XPyS.avg.avg_to_hdf5(sample_name = self.samplename.text(),experiment_name = self.experimentname.text(),avgfiles = self.files,savepath = svpth,force = False)
                
 
