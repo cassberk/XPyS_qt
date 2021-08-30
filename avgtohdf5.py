@@ -53,16 +53,11 @@ class App(QWidget):
         self.fileSelect.setText("Choose Files")
         self.fileSelect.clicked.connect(self.loadFiles)
 
-        # self.folderSelect = QPushButton()
-        # self.folderSelect.setText("Choose Folder")
-        # self.folderSelect.clicked.connect(self.loadFolder)
-
         self.choosePath = QPushButton()
         self.choosePath.setText("Choose Save Location")
         self.choosePath.clicked.connect(self.chooseSavePath)
 
         self.savepath = QLineEdit()
-        # self.savepath.setObjectName("host")
         self.savepath.setFixedWidth(400)
         self.savepathLabel = QLabel('Save Path', self) 
 
@@ -138,14 +133,9 @@ class App(QWidget):
             self.error.show()
             return
         elif self.experimentname.text() =='':
-            # print(self.savepath.text())
-            # print(self.savepath.text()=='')
             self.error = MessageWindow(message = 'You must name the Experiment')
             self.error.show()
-            # msg = QMessageBox()
-            # msg.setIcon(QMessageBox.Information)
-            # msg.setText("This is a message box")
-            # msg.show()
+
             return
 
         else:
