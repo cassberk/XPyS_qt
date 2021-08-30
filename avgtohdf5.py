@@ -3,10 +3,12 @@ from PyQt5.QtWidgets import QApplication, QWidget, QInputDialog, QLineEdit, QFil
 from PyQt5.QtGui import QIcon, QStandardItem,QStandardItemModel
 import os
 sys.path.append("/Users/cassberk/code/")
+import XPyS
 import XPyS.avg
 import glob
 import h5py
-from IPython import embed as shell
+
+default_path = "/Volumes/GoogleDrive/Shared drives/LBL_AQT_samples/sample_library"
 
 class MessageWindow(QWidget):
     """
@@ -106,7 +108,7 @@ class App(QWidget):
         filter = "All Files (*)"
         file_name = QFileDialog()
         file_name.setFileMode(QFileDialog.ExistingFiles)
-        _files,_ = file_name.getOpenFileNames(self, "All Files (*)", "/Volumes/GoogleDrive/Shared drives/StOQD/sample_library", filter)
+        _files,_ = file_name.getOpenFileNames(self, "All Files (*)", default_path, filter)
         self.savepath.setText(_files[0])
         self.samplename.setText(_files[0].split('/')[-1].split('.')[0])
 
@@ -114,7 +116,7 @@ class App(QWidget):
         filter = "All Files (*)"
         file_name = QFileDialog()
         file_name.setFileMode(QFileDialog.ExistingFiles)
-        _files,_ = file_name.getOpenFileNames(self, "All Files (*)", "/Volumes/GoogleDrive/Shared drives/StOQD/sample_library", filter)
+        _files,_ = file_name.getOpenFileNames(self, "All Files (*)", default_path, filter)
         for i in _files:
             self.files.append(i)
             item = QStandardItem(i)
@@ -165,8 +167,6 @@ class App(QWidget):
                 else:
                     pass
             else:
-                # shell()
-                print('1')
                 print(self.files)
                 XPyS.avg.avg_to_hdf5(sample_name = self.samplename.text(),experiment_name = self.experimentname.text(),avgfiles = self.files,savepath = svpth,force = False)
                
